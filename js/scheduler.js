@@ -1,0 +1,232 @@
+/**
+ * 在线排班应用 - 核心算法模块
+ */
+
+// 计算最大公约数 (Greatest Common Divisor)
+function gcd(a, b) {
+  a = Math.abs(a);
+  b = Math.abs(b);
+  while (b) {
+    const temp = b;
+    b = a % b;
+    a = temp;
+  }
+  return a;
+}
+
+// 计算最小公倍数 (Least Common Multiple)
+function lcm(a, b) {
+  if (a === 0 || b === 0) return 0;
+  return Math.abs(a * b) / gcd(a, b);
+}
+
+/**
+ * 解析输入的人员名单字符串
+ * 兼容中英文逗号、换行、制表符与空格，去除多余空白并过滤空项
+ * @param {string} rawText 
+ * @returns {string[]} 解析出的人员名单
+ */
+function parseNames(rawText) {
+  if (!rawText || typeof rawText !== 'string') return [];
+  return rawText
+    .split(/[,，\r\n\t]+/)
+    .map(name => name.trim())
+    .filter(name => name.length > 0);
+}
+
+/**
+ * 计算实现“无余数、每个人排班次数相等”所需的周期参数
+ * @param {number} N 总人数
+ * @param {number} K 每日排班人数
+ * @returns {{ totalDays: number, shiftsPerPerson: number, totalShifts: number, g: number }}
+ */
+function calculateCycle(N, K) {
+  if (N <= 0 || K <= 0) {
+    return { totalDays: 0, shiftsPerPerson: 0, totalShifts: 0, g: 0 };
+  }
+  const g = gcd(N, K);
+  const totalLcm = (N * K) / g;
+  const totalDays = totalLcm / K;          // 即 N / g
+  const shiftsPerPerson = totalLcm / N;    // 即 K / g
+  return {
+    totalDays,
+    shiftsPerPerson,
+    totalShifts: totalLcm,
+    g
+  };
+}
+
+/**
+ * Fisher-Yates 永远随机打乱算法
+ * @param {Array} array 
+ * @returns {Array} 打乱后的新数组（不修改原数组）
+ */
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * 生成排班序列（人员分组）
+ * 1. 将人员名单永远随机打乱
+ * 2. 拼接 shiftsPerPerson 轮，得到长度为 totalShifts 的完整轮换名单
+ * 3. 依次切分成 totalDays 天，每天正好 K 人，保证无余数且每人排班次数完全一致
+ * @param {string[]} names 人员名单
+ * @param {number} dailyCount 每日人数
+ * @returns {{ shuffledNames: string[], dailyAssignments: string[][], totalDays: number, shiftsPerPerson: number, totalShifts: number }}
+ */
+function generateScheduleAssignments(names, dailyCount) {
+  const N = names.length;
+  const K = dailyCount;
+  if (N < K || K <= 0) {
+    throw new Error('每日排班人数不能超过总人数，且必须大于0');
+  }
+
+  const { totalDays, shiftsPerPerson, totalShifts } = calculateCycle(N, K);
+
+  // 1. 永远随机打乱
+  const shuffled = shuffleArray(names);
+
+  // 2. 拼接 shiftsPerPerson 轮完整名单
+  const fullSequence = [];
+  for (let round = 0; round < shiftsPerPerson; round++) {
+    fullSequence.push(...shuffled);
+  }
+
+  // 3. 切分成每日 K 个人
+  const dailyAssignments = [];
+  for (let i = 0; i < totalDays; i++) {
+    const dayGroup = fullSequence.slice(i * K, (i + 1) * K);
+    dailyAssignments.push(dayGroup);
+  }
+
+  return {
+    shuffledNames: shuffled,
+    dailyAssignments,
+    totalDays,
+    shiftsPerPerson,
+    totalShifts
+  };
+}
+
+/**
+ * 中文星期名称映射
+ */
+const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+/**
+ * 格式化 Date 为 YYYY-MM-DD
+ * @param {Date} date 
+ * @returns {string}
+ */
+function formatDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * 解析 YYYY-MM-DD 字符串为本地 Date
+ * @param {string} str 
+ * @returns {Date}
+ */
+function parseDate(str) {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/**
+ * 计算实际排班日期序列（自动跳过周末及指定节假日，确保填满 totalDays 天工作日）
+ * @param {string} startDateStr 起始日期 (YYYY-MM-DD)
+ * @param {number} totalDays 所需排班工作日总天数
+ * @param {Set<string>|Array<string>} excludedDates 排除的节假日集合 (YYYY-MM-DD)
+ * @returns {{ workdays: Array<{ dateStr: string, weekday: string, date: Date }>, scannedDays: Array<{ dateStr: string, weekday: string, isWeekend: boolean, isExcluded: boolean, isWorkday: boolean }> }}
+ */
+function computeScheduleDates(startDateStr, totalDays, excludedDates = new Set()) {
+  const excludedSet = excludedDates instanceof Set ? excludedDates : new Set(excludedDates);
+  const workdays = [];
+  const scannedDays = [];
+
+  const curDate = parseDate(startDateStr);
+
+  // 安全上限：避免死循环
+  const maxIterations = totalDays * 10 + 365;
+  let iterations = 0;
+
+  while (workdays.length < totalDays && iterations < maxIterations) {
+    iterations++;
+    const dateStr = formatDate(curDate);
+    const dayOfWeek = curDate.getDay(); // 0 是周日, 6 是周六
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    const isExcluded = excludedSet.has(dateStr);
+    const weekday = WEEKDAY_NAMES[dayOfWeek];
+
+    const isWorkday = !isWeekend && !isExcluded;
+
+    const dayInfo = {
+      dateStr,
+      weekday,
+      isWeekend,
+      isExcluded,
+      isWorkday
+    };
+    scannedDays.push(dayInfo);
+
+    if (isWorkday) {
+      workdays.push({
+        dateStr,
+        weekday,
+        date: new Date(curDate)
+      });
+    }
+
+    // 递增到下一天
+    curDate.setDate(curDate.getDate() + 1);
+  }
+
+  return {
+    workdays,
+    scannedDays
+  };
+}
+
+/**
+ * 输出符合格式要求的 Markdown 文本
+ * 格式：
+ * ## yyyy-MM-dd，周几
+ * 人员1，人员2，人员3，人员4
+ * 
+ * 全角逗号。
+ * @param {Array<{ dateStr: string, weekday: string, names: string[] }>} scheduleItems 
+ * @returns {string}
+ */
+function formatToMarkdown(scheduleItems) {
+  return scheduleItems.map(item => {
+    const header = `## ${item.dateStr}，${item.weekday}`;
+    const namesLine = item.names.join('，');
+    return `${header}\n${namesLine}`;
+  }).join('\n\n');
+}
+
+// 导出兼容浏览器与 Node.js 测试
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    gcd,
+    lcm,
+    parseNames,
+    calculateCycle,
+    shuffleArray,
+    generateScheduleAssignments,
+    formatDate,
+    parseDate,
+    computeScheduleDates,
+    formatToMarkdown,
+    WEEKDAY_NAMES
+  };
+}
+

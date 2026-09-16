@@ -1,0 +1,53 @@
+/* 自定义样式补充 */
+
+/* 细滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Toast 动画 */
+.toast-enter {
+  transform: translateY(-20px);
+  opacity: 0;
+}
+.toast-enter-active {
+  transform: translateY(0);
+  opacity: 1;
+  transition: all 0.25s ease-out;
+}
+
+/* 步骤指示器连线 */
+.step-line {
+  height: 2px;
+  flex: 1;
+  transition: background-color 0.3s ease;
+}
+
+/* 优雅的表格斑马纹 */
+.zebra-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+/* 排除日期的删除线与淡化 */
+.excluded-chip {
+  background-color: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #b91c1c !important;
+  text-decoration: line-through;
+}
+
