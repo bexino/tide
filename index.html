@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>智能在线排班系统 - 无余数均衡排班</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans antialiased">
@@ -22,7 +22,7 @@
         </div>
       </div>
       <div class="text-xs px-2.5 py-1 bg-indigo-50 text-indigo-700 font-medium rounded-full border border-indigo-100">
-        机电一体化技术3班：傅嘉豪，用♥️制作
+        机电一体化技术3班，用♥️制作
       </div>
     </div>
   </header>
@@ -384,8 +384,8 @@
 
       <!-- 视图切换：可视化排班表为默认第1视图，Markdown 为第2视图 -->
       <div class="flex items-center space-x-2 mb-4">
-        <button type="button" id="tab-btn-table" class="text-xs px-3.5 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white transition-all">🔍 可视化排班表 (默认视图)</button>
-        <button type="button" id="tab-btn-markdown" class="text-xs px-3.5 py-1.5 rounded-lg font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">Markdown 文本格式 (第二视图)</button>
+        <button type="button" id="tab-btn-table" class="text-xs px-3.5 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white transition-all">🔍可视化排班表(HTML视图)</button>
+        <button type="button" id="tab-btn-markdown" class="text-xs px-3.5 py-1.5 rounded-lg font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">纯文本(markdown)</button>
       </div>
 
       <!-- 可视化表格/卡片容器 (默认展示) -->
@@ -394,7 +394,7 @@
         <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div class="relative flex-1 max-w-lg">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">🔍</span>
-            <input type="text" id="table-search-input" placeholder="输入姓名、日期或星期搜索（如：鲁皓宇、2026-10、周三）..." class="w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+            <input type="text" id="table-search-input" placeholder="输入姓名、日期或星期搜索..." class="w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
             <button type="button" id="btn-clear-table-search" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 font-bold text-sm">✕</button>
           </div>
           <div class="flex items-center justify-between sm:justify-end space-x-3 text-xs">
