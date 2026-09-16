@@ -43,11 +43,27 @@
   background-color: #f8fafc;
 }
 
-/* 排除日期的删除线与淡化 */
-.excluded-chip {
-  background-color: #fee2e2 !important;
-  border-color: #fca5a5 !important;
-  color: #b91c1c !important;
-  text-decoration: line-through;
+/* 日历单元格样式 */
+.calendar-cell {
+  min-height: 80px;
+  transition: all 0.15s ease;
+}
+@media (max-width: 640px) {
+  .calendar-cell {
+    min-height: 62px;
+  }
 }
 
+.calendar-cell:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* 搜索高亮 */
+mark.search-highlight {
+  background-color: #fef08a;
+  color: #854d0e;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 700;
+}

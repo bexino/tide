@@ -35,7 +35,7 @@ function parseNames(rawText) {
 }
 
 /**
- * 计算实现“无余数、每个人排班次数相等”所需的周期参数
+ * 计算实现“无余数、每个人排班次数严格相等”所需的最小周期参数
  * @param {number} N 总人数
  * @param {number} K 每日排班人数
  * @returns {{ totalDays: number, shiftsPerPerson: number, totalShifts: number, g: number }}
@@ -73,8 +73,8 @@ function shuffleArray(array) {
 /**
  * 生成排班序列（人员分组）
  * 1. 将人员名单永远随机打乱
- * 2. 拼接 shiftsPerPerson 轮，得到长度为 totalShifts 的完整轮换名单
- * 3. 依次切分成 totalDays 天，每天正好 K 人，保证无余数且每人排班次数完全一致
+ * 2. 严格按最小无余数整周期生成（shiftsPerPerson 轮完整名单）
+ * 3. 循环轮替切分成每日 K 个人，保证无余数且每人排班次数完全一致
  * @param {string[]} names 人员名单
  * @param {number} dailyCount 每日人数
  * @returns {{ shuffledNames: string[], dailyAssignments: string[][], totalDays: number, shiftsPerPerson: number, totalShifts: number }}
@@ -141,21 +141,24 @@ function parseDate(str) {
 }
 
 /**
- * 计算实际排班日期序列（自动跳过周末及指定节假日，确保填满 totalDays 天工作日）
+ * 计算实际排班日期序列（自动跳过周末及指定节假日，同时支持手动加入排班日/周末调休补班）
  * @param {string} startDateStr 起始日期 (YYYY-MM-DD)
- * @param {number} totalDays 所需排班工作日总天数
+ * @param {number} totalDays 所需排班工作日总天数（由最小公倍数严格确定）
  * @param {Set<string>|Array<string>} excludedDates 排除的节假日集合 (YYYY-MM-DD)
- * @returns {{ workdays: Array<{ dateStr: string, weekday: string, date: Date }>, scannedDays: Array<{ dateStr: string, weekday: string, isWeekend: boolean, isExcluded: boolean, isWorkday: boolean }> }}
+ * @param {Set<string>|Array<string>} manualWorkdays 手动加入的排班日集合 (YYYY-MM-DD，例如周末调休补班)
+ * @returns {{ workdays: Array<{ dateStr: string, weekday: string, date: Date, isManualWorkday: boolean }>, scannedDays: Array<{ dateStr: string, weekday: string, isWeekend: boolean, isExcluded: boolean, isManualWorkday: boolean, isWorkday: boolean }>, datesMap: Map<string, object> }}
  */
-function computeScheduleDates(startDateStr, totalDays, excludedDates = new Set()) {
+function computeScheduleDates(startDateStr, totalDays, excludedDates = new Set(), manualWorkdays = new Set()) {
   const excludedSet = excludedDates instanceof Set ? excludedDates : new Set(excludedDates);
+  const manualSet = manualWorkdays instanceof Set ? manualWorkdays : new Set(manualWorkdays);
   const workdays = [];
   const scannedDays = [];
+  const datesMap = new Map();
 
   const curDate = parseDate(startDateStr);
 
   // 安全上限：避免死循环
-  const maxIterations = totalDays * 10 + 365;
+  const maxIterations = Math.max(totalDays * 10 + 365, 3650);
   let iterations = 0;
 
   while (workdays.length < totalDays && iterations < maxIterations) {
@@ -164,34 +167,47 @@ function computeScheduleDates(startDateStr, totalDays, excludedDates = new Set()
     const dayOfWeek = curDate.getDay(); // 0 是周日, 6 是周六
     const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
     const isExcluded = excludedSet.has(dateStr);
+    const isManualWorkday = manualSet.has(dateStr);
+
+    let isWorkday = false;
+    if (isExcluded) {
+      isWorkday = false;
+    } else if (isManualWorkday) {
+      isWorkday = true;
+    } else {
+      isWorkday = !isWeekend;
+    }
+
     const weekday = WEEKDAY_NAMES[dayOfWeek];
-
-    const isWorkday = !isWeekend && !isExcluded;
-
     const dayInfo = {
       dateStr,
       weekday,
       isWeekend,
       isExcluded,
-      isWorkday
+      isManualWorkday,
+      isWorkday,
+      workdayIndex: isWorkday ? workdays.length + 1 : null
     };
+
     scannedDays.push(dayInfo);
+    datesMap.set(dateStr, dayInfo);
 
     if (isWorkday) {
       workdays.push({
         dateStr,
         weekday,
-        date: new Date(curDate)
+        date: new Date(curDate),
+        isManualWorkday
       });
     }
 
-    // 递增到下一天
     curDate.setDate(curDate.getDate() + 1);
   }
 
   return {
     workdays,
-    scannedDays
+    scannedDays,
+    datesMap
   };
 }
 
@@ -229,4 +245,3 @@ if (typeof module !== 'undefined' && module.exports) {
     WEEKDAY_NAMES
   };
 }
-
