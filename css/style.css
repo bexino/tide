@@ -37,6 +37,11 @@
   flex: 1;
   transition: background-color 0.3s ease;
 }
+@media (max-width: 480px) {
+  .step-line {
+    display: none;
+  }
+}
 
 /* 优雅的表格斑马纹 */
 .zebra-table tbody tr:nth-child(even) {
@@ -50,7 +55,8 @@
 }
 @media (max-width: 640px) {
   .calendar-cell {
-    min-height: 62px;
+    min-height: 52px;
+    padding: 4px !important;
   }
 }
 
@@ -66,4 +72,18 @@ mark.search-highlight {
   padding: 1px 4px;
   border-radius: 4px;
   font-weight: 700;
+}
+
+/* 移动端排班卡片样式 */
+.schedule-card {
+  transition: all 0.15s ease;
+}
+.schedule-card:active {
+  transform: scale(0.99);
+}
+
+/* 人员药丸标签触摸优化 */
+.mobile-person-chip {
+  touch-action: manipulation;
+  user-select: none;
 }

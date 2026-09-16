@@ -31,50 +31,50 @@
   <main class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 flex-1">
 
     <!-- 步骤导航条 (Wizard Indicator) -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mb-8">
+    <div class="bg-white p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm mb-6 sm:mb-8">
       <div class="flex items-center justify-between relative">
         <!-- 步骤 1 -->
         <div class="step-item flex flex-col items-center flex-1 cursor-pointer" onclick="goToStep(1)">
-          <div id="step-dot-1" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all bg-indigo-600 text-white shadow-md shadow-indigo-200">
+          <div id="step-dot-1" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all bg-indigo-600 text-white shadow-md shadow-indigo-200">
             1
           </div>
-          <span id="step-text-1" class="text-xs sm:text-sm font-medium mt-2 text-indigo-600">名单与人数</span>
+          <span id="step-text-1" class="text-[10px] sm:text-sm font-medium mt-1 sm:mt-2 text-indigo-600 text-center leading-tight">名单与人数</span>
         </div>
-        <div id="step-line-1" class="step-line bg-slate-200 -mt-5"></div>
+        <div id="step-line-1" class="step-line bg-slate-200 -mt-3 sm:-mt-5"></div>
 
         <!-- 步骤 2 -->
         <div class="step-item flex flex-col items-center flex-1 cursor-pointer" onclick="goToStep(2)">
-          <div id="step-dot-2" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all bg-slate-200 text-slate-600">
+          <div id="step-dot-2" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all bg-slate-200 text-slate-600">
             2
           </div>
-          <span id="step-text-2" class="text-xs sm:text-sm font-medium mt-2 text-slate-500">轮换检查</span>
+          <span id="step-text-2" class="text-[10px] sm:text-sm font-medium mt-1 sm:mt-2 text-slate-500 text-center leading-tight">轮换检查</span>
         </div>
-        <div id="step-line-2" class="step-line bg-slate-200 -mt-5"></div>
+        <div id="step-line-2" class="step-line bg-slate-200 -mt-3 sm:-mt-5"></div>
 
         <!-- 步骤 3 -->
         <div class="step-item flex flex-col items-center flex-1 cursor-pointer" onclick="goToStep(3)">
-          <div id="step-dot-3" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all bg-slate-200 text-slate-600">
+          <div id="step-dot-3" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all bg-slate-200 text-slate-600">
             3
           </div>
-          <span id="step-text-3" class="text-xs sm:text-sm font-medium mt-2 text-slate-500">起始日期</span>
+          <span id="step-text-3" class="text-[10px] sm:text-sm font-medium mt-1 sm:mt-2 text-slate-500 text-center leading-tight">起始日期</span>
         </div>
-        <div id="step-line-3" class="step-line bg-slate-200 -mt-5"></div>
+        <div id="step-line-3" class="step-line bg-slate-200 -mt-3 sm:-mt-5"></div>
 
         <!-- 步骤 4 -->
         <div class="step-item flex flex-col items-center flex-1 cursor-pointer" onclick="goToStep(4)">
-          <div id="step-dot-4" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all bg-slate-200 text-slate-600">
+          <div id="step-dot-4" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all bg-slate-200 text-slate-600">
             4
           </div>
-          <span id="step-text-4" class="text-xs sm:text-sm font-medium mt-2 text-slate-500">日历选择器</span>
+          <span id="step-text-4" class="text-[10px] sm:text-sm font-medium mt-1 sm:mt-2 text-slate-500 text-center leading-tight">日历选择器</span>
         </div>
-        <div id="step-line-4" class="step-line bg-slate-200 -mt-5"></div>
+        <div id="step-line-4" class="step-line bg-slate-200 -mt-3 sm:-mt-5"></div>
 
         <!-- 步骤 5 -->
         <div class="step-item flex flex-col items-center flex-1 cursor-pointer" onclick="goToStep(5)">
-          <div id="step-dot-5" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all bg-slate-200 text-slate-600">
+          <div id="step-dot-5" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all bg-slate-200 text-slate-600">
             5
           </div>
-          <span id="step-text-5" class="text-xs sm:text-sm font-medium mt-2 text-slate-500">排班结果</span>
+          <span id="step-text-5" class="text-[10px] sm:text-sm font-medium mt-1 sm:mt-2 text-slate-500 text-center leading-tight">排班结果</span>
         </div>
       </div>
     </div>
@@ -369,7 +369,10 @@
           </div>
           <p class="text-sm text-slate-500 mt-1">默认展示可视化排班表（支持即时搜索与人员筛选），亦可切换为 Markdown 格式。</p>
         </div>
-        <div class="flex items-center space-x-2.5">
+        <div class="flex items-center flex-wrap gap-2">
+          <button type="button" id="btn-download-html" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium shadow-md shadow-emerald-100 transition-all flex items-center space-x-1.5">
+            <span>🌐 导出独立 HTML</span>
+          </button>
           <button type="button" id="btn-copy-markdown" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium shadow-md shadow-indigo-100 transition-all flex items-center space-x-1.5">
             <span>📄 一键复制 Markdown</span>
           </button>
@@ -385,7 +388,7 @@
         <button type="button" id="tab-btn-markdown" class="text-xs px-3.5 py-1.5 rounded-lg font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">Markdown 文本格式 (第二视图)</button>
       </div>
 
-      <!-- 可视化表格容器 (默认展示) -->
+      <!-- 可视化表格/卡片容器 (默认展示) -->
       <div id="view-table-container" class="border border-slate-200 rounded-xl overflow-hidden mb-2 bg-white">
         <!-- 搜索与筛选工具条 -->
         <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -394,15 +397,24 @@
             <input type="text" id="table-search-input" placeholder="输入姓名、日期或星期搜索（如：鲁皓宇、2026-10、周三）..." class="w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
             <button type="button" id="btn-clear-table-search" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 font-bold text-sm">✕</button>
           </div>
-          <div class="flex items-center space-x-3 text-xs text-slate-500">
+          <div class="flex items-center justify-between sm:justify-end space-x-3 text-xs">
             <span id="search-result-stats" class="font-medium text-slate-700">共 49 天排班</span>
-            <span class="text-slate-400 hidden md:inline">💡 点击表格内的人员姓名可快速筛选该人员</span>
+            <!-- 视图形态切换器（手机端默认卡片，电脑端默认表格） -->
+            <div class="flex items-center bg-slate-200/90 p-0.5 rounded-lg text-xs font-semibold shadow-2xs">
+              <button type="button" id="btn-subview-cards" class="px-2.5 py-1 rounded-md transition-all">📋 卡片</button>
+              <button type="button" id="btn-subview-table" class="px-2.5 py-1 rounded-md transition-all">📊 表格</button>
+            </div>
           </div>
         </div>
 
-        <!-- 结果表格 -->
-        <div class="max-h-96 overflow-y-auto">
-          <table class="w-full text-left border-collapse text-xs sm:text-sm zebra-table">
+        <!-- 移动端友好的卡片流视图容器 -->
+        <div id="final-cards-container" class="p-3 sm:p-4 max-h-[600px] overflow-y-auto space-y-2.5 bg-slate-50/50">
+          <!-- JS 动态渲染卡片 -->
+        </div>
+
+        <!-- 电脑端表格视图容器 -->
+        <div id="final-table-scroll-container" class="max-h-96 overflow-y-auto overflow-x-auto hidden">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm zebra-table min-w-[500px]">
             <thead class="bg-slate-100 text-slate-700 font-semibold sticky top-0 border-b border-slate-200 z-10">
               <tr>
                 <th class="py-3 px-4 w-20">序号</th>
@@ -415,11 +427,12 @@
               <!-- 动态填充 -->
             </tbody>
           </table>
-          <!-- 搜索空状态 -->
-          <div id="table-empty-search" class="hidden p-8 text-center text-slate-400 text-sm">
-            <div class="text-2xl mb-1">🔍</div>
-            未找到与当前关键词匹配的排班记录
-          </div>
+        </div>
+
+        <!-- 搜索空状态 -->
+        <div id="table-empty-search" class="hidden p-8 text-center text-slate-400 text-sm">
+          <div class="text-2xl mb-1">🔍</div>
+          未找到与当前关键词匹配的排班记录
         </div>
       </div>
 
