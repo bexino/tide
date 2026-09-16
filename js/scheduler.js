@@ -267,6 +267,149 @@ function formatToCsv(scheduleItems) {
   return [headers.join(','), ...rows].join('\r\n');
 }
 
+/**
+ * 将轮换分配数组输出为第 2 步专用的 Markdown 格式
+ * 格式：
+ * ## 第 1 天
+ * 人员1，人员2，人员3，人员4
+ * @param {string[][]} dailyAssignments 
+ * @returns {string}
+ */
+function formatAssignmentsToMarkdown(dailyAssignments) {
+  if (!dailyAssignments || !Array.isArray(dailyAssignments)) return '';
+  return dailyAssignments.map((dayGroup, index) => {
+    const dayHeader = `## 第 ${index + 1} 天`;
+    const namesLine = dayGroup.join('，');
+    return `${dayHeader}\n${namesLine}`;
+  }).join('\n\n');
+}
+
+/**
+ * 解析并严格校验第 2 步修改后的 Markdown 文本
+ * 校验规则：
+ * 1. 严格天数：解析出的天数必须完全等于 expectedDays（不可增删天数）
+ * 2. 每日人数：每天人数必须完全等于 expectedDailyCount
+ * 3. 无未知人员：名单必须全部属于 originalNames
+ * 4. 严格均等轮替：每人出现的次数必须完全等于 expectedShiftsPerPerson
+ * 
+ * @param {string} markdownText 
+ * @param {number} expectedDays 
+ * @param {number} expectedDailyCount 
+ * @param {string[]} originalNames 
+ * @param {number} expectedShiftsPerPerson 
+ * @returns {{ isValid: boolean, errors: string[], dailyAssignments: string[][] }}
+ */
+function parseAndValidateAssignmentsMarkdown(markdownText, expectedDays, expectedDailyCount, originalNames, expectedShiftsPerPerson) {
+  const errors = [];
+  if (!markdownText || typeof markdownText !== 'string' || !markdownText.trim()) {
+    return { isValid: false, errors: ['内容不能为空，请输入有效的轮换 Markdown 文本'], dailyAssignments: [] };
+  }
+
+  const rawLines = markdownText.split(/\r?\n/);
+  const daysBlocks = [];
+  let currentHeader = null;
+  let currentLines = [];
+
+  for (const line of rawLines) {
+    const trimmed = line.trim();
+    const headerMatch = trimmed.match(/^##\s*第?\s*(\d+)\s*天?/i);
+    if (headerMatch) {
+      if (currentHeader !== null) {
+        daysBlocks.push({ header: currentHeader, lines: currentLines });
+      }
+      currentHeader = headerMatch[1];
+      currentLines = [];
+    } else if (currentHeader !== null && trimmed.length > 0) {
+      currentLines.push(trimmed);
+    }
+  }
+
+  if (currentHeader !== null) {
+    daysBlocks.push({ header: currentHeader, lines: currentLines });
+  }
+
+  if (daysBlocks.length === 0) {
+    return {
+      isValid: false,
+      errors: ['未能解析到任何有效天数段落。请确保每段以 "## 第 X 天" 开头'],
+      dailyAssignments: []
+    };
+  }
+
+  // 校验 1：天数严格一致（检测掉天数修改直接报错）
+  if (daysBlocks.length !== expectedDays) {
+    errors.push(`天数不匹配：设定周期必须为 ${expectedDays} 天整，当前解析到 ${daysBlocks.length} 天（系统已开启严格检测，不可增删天数）`);
+  }
+
+  const parsedAssignments = [];
+  const personCountMap = new Map();
+  const originalNameSet = new Set(originalNames);
+
+  // 初始化计数器
+  originalNames.forEach(name => personCountMap.set(name, 0));
+
+  daysBlocks.forEach((block, idx) => {
+    const dayIndex = idx + 1;
+    const allNamesText = block.lines.join(' ');
+    // 拆分人名（兼容中英文逗号、顿号、制表符、多重空格）
+    const dayNames = allNamesText
+      .split(/[,，、\s\t]+/)
+      .map(n => n.trim())
+      .filter(n => n.length > 0);
+
+    // 校验 2：每日人数严格一致
+    if (dayNames.length !== expectedDailyCount) {
+      errors.push(`第 ${dayIndex} 天人员数量不正确：要求为 ${expectedDailyCount} 人，实际解析到 ${dayNames.length} 人 (${dayNames.join('、') || '空'})`);
+    }
+
+    // 检查单日是否出现同名重复
+    const daySet = new Set();
+    const duplicates = [];
+    dayNames.forEach(name => {
+      if (daySet.has(name)) {
+        duplicates.push(name);
+      }
+      daySet.add(name);
+    });
+    if (duplicates.length > 0) {
+      errors.push(`第 ${dayIndex} 天存在重复排班人员：${duplicates.join('、')}`);
+    }
+
+    // 校验 3：检查是否引入了名单外人员
+    const unknownNames = dayNames.filter(name => !originalNameSet.has(name));
+    if (unknownNames.length > 0) {
+      errors.push(`第 ${dayIndex} 天包含未知或未登记人员：${unknownNames.join('、')}`);
+    }
+
+    // 统计各人员轮值频次
+    dayNames.forEach(name => {
+      if (personCountMap.has(name)) {
+        personCountMap.set(name, personCountMap.get(name) + 1);
+      }
+    });
+
+    parsedAssignments.push(dayNames);
+  });
+
+  // 校验 4：每人轮值次数严格均等
+  const shiftMismatches = [];
+  personCountMap.forEach((count, name) => {
+    if (count !== expectedShiftsPerPerson) {
+      shiftMismatches.push(`${name}（实际 ${count} 次，应为 ${expectedShiftsPerPerson} 次）`);
+    }
+  });
+
+  if (shiftMismatches.length > 0) {
+    errors.push(`人员轮值次数不均等（破坏了无余数均衡）：${shiftMismatches.slice(0, 8).join('、')}${shiftMismatches.length > 8 ? ` 等共 ${shiftMismatches.length} 人` : ''}`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    dailyAssignments: parsedAssignments
+  };
+}
+
 // 导出兼容浏览器与 Node.js 测试
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -281,6 +424,8 @@ if (typeof module !== 'undefined' && module.exports) {
     computeScheduleDates,
     formatToMarkdown,
     formatToCsv,
+    formatAssignmentsToMarkdown,
+    parseAndValidateAssignmentsMarkdown,
     WEEKDAY_NAMES
   };
 }

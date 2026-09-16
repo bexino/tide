@@ -60,8 +60,19 @@ const elements = {
   tabStep2People: document.getElementById('tab-step2-people'),
   schedulePreviewList: document.getElementById('schedule-preview-list'),
   schedulePersonStatsList: document.getElementById('schedule-person-stats-list'),
+  btnEditAssignments: document.getElementById('btn-edit-assignments'),
   btnReshuffle: document.getElementById('btn-reshuffle'),
   btnToStep3: document.getElementById('btn-to-step-3'),
+
+  // Step 2 Modal 手工编辑弹窗
+  modalEditAssignments: document.getElementById('modal-edit-assignments'),
+  btnCloseEditModal: document.getElementById('btn-close-edit-modal'),
+  btnCancelEditModal: document.getElementById('btn-cancel-edit-modal'),
+  btnResetEditModal: document.getElementById('btn-reset-edit-modal'),
+  btnSaveEditModal: document.getElementById('btn-save-edit-modal'),
+  modalEditTextarea: document.getElementById('modal-edit-textarea'),
+  modalEditErrors: document.getElementById('modal-edit-errors'),
+  modalEditErrorsList: document.getElementById('modal-edit-errors-list'),
 
   // Step 3
   startDateInput: document.getElementById('start-date-input'),
@@ -328,6 +339,78 @@ function renderStep2Preview() {
     `;
   }).join('');
   elements.schedulePersonStatsList.innerHTML = peopleHtml;
+}
+
+// 打开第 2 步手动修改轮换方案弹窗
+function openEditAssignmentsModal() {
+  if (!state.scheduleAssignments || !state.scheduleAssignments.dailyAssignments) return;
+  
+  // 生成当前轮换分配的 Markdown
+  const mdText = formatAssignmentsToMarkdown(state.scheduleAssignments.dailyAssignments);
+  elements.modalEditTextarea.value = mdText;
+  
+  // 重置错误提示
+  elements.modalEditErrors.classList.add('hidden');
+  elements.modalEditErrorsList.innerHTML = '';
+  
+  // 显示弹窗
+  elements.modalEditAssignments.classList.remove('hidden');
+  elements.modalEditTextarea.focus();
+}
+
+// 关闭第 2 步手动修改轮换方案弹窗
+function closeEditAssignmentsModal() {
+  elements.modalEditAssignments.classList.add('hidden');
+  elements.modalEditErrors.classList.add('hidden');
+  elements.modalEditErrorsList.innerHTML = '';
+}
+
+// 重置弹窗内文本为当前方案
+function resetEditAssignmentsModal() {
+  if (!state.scheduleAssignments || !state.scheduleAssignments.dailyAssignments) return;
+  elements.modalEditTextarea.value = formatAssignmentsToMarkdown(state.scheduleAssignments.dailyAssignments);
+  elements.modalEditErrors.classList.add('hidden');
+  elements.modalEditErrorsList.innerHTML = '';
+  showToast('已重置为当前方案文本');
+}
+
+// 保存并检查修改后的轮换方案
+function saveEditAssignmentsModal() {
+  if (!state.scheduleAssignments) return;
+
+  const text = elements.modalEditTextarea.value;
+  const expectedDays = state.scheduleAssignments.totalDays;
+  const expectedDailyCount = state.dailyCount;
+  const originalNames = state.names;
+  const expectedShiftsPerPerson = state.scheduleAssignments.shiftsPerPerson;
+
+  // 执行严格解析与校验
+  const result = parseAndValidateAssignmentsMarkdown(
+    text,
+    expectedDays,
+    expectedDailyCount,
+    originalNames,
+    expectedShiftsPerPerson
+  );
+
+  if (!result.isValid) {
+    // 校验未通过：渲染错误信息并阻断保存
+    elements.modalEditErrorsList.innerHTML = result.errors.map(err => `<li>${err}</li>`).join('');
+    elements.modalEditErrors.classList.remove('hidden');
+    elements.modalEditErrors.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    showToast('轮换方案校验未通过，请按提示修正', '⚠️');
+    return;
+  }
+
+  // 校验完全通过：更新状态中的轮替方案
+  state.scheduleAssignments.dailyAssignments = result.dailyAssignments;
+  
+  // 重新渲染第 2 步列表和统计检查
+  renderStep2Preview();
+
+  // 关闭弹窗并给予成功反馈
+  closeEditAssignmentsModal();
+  showToast('轮换方案修改成功，已通过严格无余数均衡校验！');
 }
 
 // 步骤 3 起始日期变化监听
@@ -1488,6 +1571,17 @@ function setupEventListeners() {
     elements.tabStep2Days.className = 'px-3 py-1 rounded-md font-semibold text-slate-600 hover:text-slate-900';
     elements.schedulePersonStatsList.classList.remove('hidden');
     elements.schedulePreviewList.classList.add('hidden');
+  });
+
+  elements.btnEditAssignments.addEventListener('click', openEditAssignmentsModal);
+  elements.btnCloseEditModal.addEventListener('click', closeEditAssignmentsModal);
+  elements.btnCancelEditModal.addEventListener('click', closeEditAssignmentsModal);
+  elements.btnResetEditModal.addEventListener('click', resetEditAssignmentsModal);
+  elements.btnSaveEditModal.addEventListener('click', saveEditAssignmentsModal);
+  elements.modalEditAssignments.addEventListener('click', (e) => {
+    if (e.target === elements.modalEditAssignments) {
+      closeEditAssignmentsModal();
+    }
   });
 
   elements.btnReshuffle.addEventListener('click', () => {
