@@ -229,6 +229,44 @@ function formatToMarkdown(scheduleItems) {
   }).join('\n\n');
 }
 
+/**
+ * 输出符合 Excel / 表格软件规范的 CSV 文本
+ * 包含序号、日期、星期、排班名单及各人员拆分列
+ * @param {Array<{ dateStr: string, weekday: string, names: string[] }>} scheduleItems 
+ * @returns {string}
+ */
+function formatToCsv(scheduleItems) {
+  if (!scheduleItems || scheduleItems.length === 0) return '';
+  
+  const maxNames = scheduleItems.reduce((m, item) => Math.max(m, (item.names || []).length), 0);
+  const headers = ['序号', '日期', '星期', '排班名单'];
+  if (maxNames > 1) {
+    for (let i = 1; i <= maxNames; i++) {
+      headers.push(`人员${i}`);
+    }
+  }
+
+  const rows = scheduleItems.map((item, index) => {
+    const seq = index + 1;
+    const date = item.dateStr;
+    const weekday = item.weekday;
+    const names = item.names || [];
+    const namesStr = names.join('，');
+    const safeNames = `"${namesStr.replace(/"/g, '""')}"`;
+    const row = [seq, date, weekday, safeNames];
+
+    if (maxNames > 1) {
+      for (let i = 0; i < maxNames; i++) {
+        const n = names[i] || '';
+        row.push(`"${n.replace(/"/g, '""')}"`);
+      }
+    }
+    return row.join(',');
+  });
+
+  return [headers.join(','), ...rows].join('\r\n');
+}
+
 // 导出兼容浏览器与 Node.js 测试
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -242,6 +280,7 @@ if (typeof module !== 'undefined' && module.exports) {
     parseDate,
     computeScheduleDates,
     formatToMarkdown,
+    formatToCsv,
     WEEKDAY_NAMES
   };
 }

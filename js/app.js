@@ -3,7 +3,7 @@
  */
 
 // 预设 docs/1.md 示例人员名单 (49人)
-const SAMPLE_NAMES_TEXT = `鲁皓宇, 钟祖辉, 饶清华, 王靖榕, 周锦熹, 徐文强, 熊寅轩, 罗平, 周朗, 胡佳豪, 陈浩轩, 卢鑫, 杨佳伟, 余浩宇, 王逸轩, 黄宇贤, 温耀辉, 万贻凯, 邱艳冬, 赖浈, 郭平辉, 彭宝康, 冷奥运, 吴世峰, 傅嘉豪, 董鑫华, 胡建辉, 谌洪力, 阮雨事, 李斌, 谭宝永, 黄榆宸, 李长禄, 钟锦辉, 陈嘉龙, 朱奥健, 潘启睿, 邹金炜, 曾晴, 冯唐华, 汪晨, 刘有佳, 舒佟, 胡恬恬, 张婷, 朱婷婷, 陈雯璇, 杨欣婷, 张梦莹`;
+const SAMPLE_NAMES_TEXT = `诺里斯, 皮亚斯特里, 拉塞尔, 安东内利, 勒克莱尔, 汉密尔顿, 维斯塔潘, 哈贾尔, 阿隆索, 斯特罗尔, 阿尔本, 塞恩斯, 比尔曼, 奥康, 加斯利, 科拉平托, 劳森, 林德布拉德, 霍肯伯格, 博托莱托, 佩雷斯, 博塔斯`;
 
 // 应用全局状态
 const state = {
@@ -96,8 +96,8 @@ const elements = {
   btnSubviewCards: document.getElementById('btn-subview-cards'),
   btnSubviewTable: document.getElementById('btn-subview-table'),
   btnDownloadHtml: document.getElementById('btn-download-html'),
+  btnDownloadCsv: document.getElementById('btn-download-csv'),
   btnCopyMarkdown: document.getElementById('btn-copy-markdown'),
-  btnDownloadMarkdown: document.getElementById('btn-download-markdown'),
   tabBtnMarkdown: document.getElementById('tab-btn-markdown'),
   tabBtnTable: document.getElementById('tab-btn-table'),
   viewMarkdownContainer: document.getElementById('view-markdown-container'),
@@ -750,20 +750,24 @@ function fallbackCopyText(text) {
   showToast('排班表 Markdown 已成功复制到剪贴板！');
 }
 
-// 下载 .md 文件
-function downloadMarkdownFile() {
-  if (!state.markdownText) return;
-  const blob = new Blob([state.markdownText], { type: 'text/markdown;charset=utf-8;' });
+// 导出并下载排班表 CSV 文件 (带 BOM 防止 Excel 乱码)
+function downloadCsvFile() {
+  if (!state.finalScheduleItems || state.finalScheduleItems.length === 0) return;
+
+  const csvContent = formatToCsv(state.finalScheduleItems);
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  const fileName = `排班表_${state.startDateStr || getTodayDateStr()}.md`;
+  const startDate = state.finalScheduleItems[0]?.dateStr || '';
+  const endDate = state.finalScheduleItems[state.finalScheduleItems.length - 1]?.dateStr || '';
+  const fileName = `排班表_${startDate}_至_${endDate}.csv`;
   link.setAttribute('download', fileName);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-  showToast(`文件 ${fileName} 开始下载`);
+  showToast(`排班表 CSV 文件已导出并开始下载！`);
 }
 
 /**
@@ -772,6 +776,7 @@ function downloadMarkdownFile() {
  */
 function generateStandaloneHtml(items, stats) {
   const itemsJson = JSON.stringify(items);
+  const statsJson = JSON.stringify(stats);
   const title = `排班表 (${stats.startDate} 至 ${stats.endDate})`;
 
   return `<!DOCTYPE html>
@@ -827,6 +832,29 @@ function generateStandaloneHtml(items, stats) {
       font-size: 12px;
       color: #64748b;
       margin-top: 2px;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-csv {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .btn-csv:hover {
+      background: #1d4ed8;
     }
     .btn-print {
       background: #4f46e5;
@@ -1124,7 +1152,7 @@ function generateStandaloneHtml(items, stats) {
     @media print {
       body { background: #ffffff; padding: 0; }
       .header { border: none; box-shadow: none; padding: 0 0 16px 0; }
-      .btn-print, .toolbar, .cards-wrapper, .view-toggle { display: none !important; }
+      .btn-print, .btn-csv, .header-actions, .toolbar, .cards-wrapper, .view-toggle { display: none !important; }
       .table-wrapper { display: block !important; max-height: none; overflow: visible; }
       .table-container { border: 1px solid #000000; box-shadow: none; }
       th, td { border-bottom: 1px solid #cccccc; }
@@ -1139,7 +1167,10 @@ function generateStandaloneHtml(items, stats) {
           <div class="title">📅 在线排班表</div>
           <div class="subtitle">排班区间：${stats.startDate} 至 ${stats.endDate} · 严格无余数均等轮替</div>
         </div>
-        <button class="btn-print" onclick="window.print()">🖨️ 打印 / 另存为 PDF</button>
+        <div class="header-actions">
+          <button class="btn-csv" onclick="downloadCsv()">📊 导出 CSV</button>
+          <button class="btn-print" onclick="window.print()">🖨️ 打印 / 另存为 PDF</button>
+        </div>
       </div>
       <div class="stats-grid">
         <div class="stat-card">
@@ -1204,6 +1235,7 @@ function generateStandaloneHtml(items, stats) {
 
   <script>
     const scheduleData = ${itemsJson};
+    const statsData = ${statsJson};
     let currentView = window.innerWidth < 640 ? 'cards' : 'table';
 
     const searchInput = document.getElementById('searchInput');
@@ -1332,6 +1364,46 @@ function generateStandaloneHtml(items, stats) {
     });
 
     searchInput.addEventListener('input', function(e) { render(e.target.value); });
+
+    function downloadCsv() {
+      const maxNames = scheduleData.reduce(function(m, item) { return Math.max(m, (item.names || []).length); }, 0);
+      const headers = ['序号', '日期', '星期', '排班名单'];
+      if (maxNames > 1) {
+        for (let i = 1; i <= maxNames; i++) {
+          headers.push('人员' + i);
+        }
+      }
+
+      const rows = scheduleData.map(function(item, index) {
+        const seq = index + 1;
+        const date = item.dateStr;
+        const weekday = item.weekday;
+        const names = item.names || [];
+        const namesStr = names.join('，');
+        const safeNames = '"' + namesStr.replace(/"/g, '""') + '"';
+        const row = [seq, date, weekday, safeNames];
+
+        if (maxNames > 1) {
+          for (let i = 0; i < maxNames; i++) {
+            const n = names[i] || '';
+            row.push('"' + n.replace(/"/g, '""') + '"');
+          }
+        }
+        return row.join(',');
+      });
+
+      const csvContent = [headers.join(','), ...rows].join('\\r\\n');
+      const blob = new Blob(['\\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const fileName = '排班表_' + (statsData.startDate || '') + '_至_' + (statsData.endDate || '') + '.csv';
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
 
     setViewMode(currentView);
     render('');
@@ -1511,8 +1583,8 @@ function setupEventListeners() {
   });
 
   elements.btnDownloadHtml.addEventListener('click', downloadHtmlFile);
+  elements.btnDownloadCsv.addEventListener('click', downloadCsvFile);
   elements.btnCopyMarkdown.addEventListener('click', copyMarkdownToClipboard);
-  elements.btnDownloadMarkdown.addEventListener('click', downloadMarkdownFile);
 
   // 视图切换：卡片 vs 表格
   elements.btnSubviewCards.addEventListener('click', () => setVisualSubView('cards'));
