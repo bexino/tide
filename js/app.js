@@ -37,6 +37,16 @@ const elements = {
     document.getElementById('panel-step-5')
   ],
 
+  // 步骤标题导览菜单
+  stepMenus: [
+    null,
+    document.getElementById('step-menu-1'),
+    document.getElementById('step-menu-2'),
+    document.getElementById('step-menu-3'),
+    document.getElementById('step-menu-4'),
+    document.getElementById('step-menu-5')
+  ],
+
   // Step 1
   namesInput: document.getElementById('names-input'),
   namesCountBadge: document.getElementById('names-count-badge'),
@@ -127,6 +137,15 @@ const elements = {
   siteFooterContent: document.getElementById('site-footer-content')
 };
 
+// 步骤标题导览菜单选项
+const STEP_MENU_ITEMS = [
+  { step: 1, title: '名单与人数' },
+  { step: 2, title: '轮换检查' },
+  { step: 3, title: '起始日期' },
+  { step: 4, title: '假期修改' },
+  { step: 5, title: '排班生成完毕' }
+];
+
 // 获取本地今日日期 YYYY-MM-DD
 function getTodayDateStr() {
   const now = new Date();
@@ -149,6 +168,63 @@ function showToast(message, icon = '✓') {
     elements.toast.classList.remove('opacity-100', 'translate-y-0');
     elements.toast.classList.add('opacity-0', '-translate-y-4');
   }, 2200);
+}
+
+// 打开或关闭步骤标题导览菜单
+function toggleStepMenu(anchorButton) {
+  if (!anchorButton) return;
+
+  const isCurrentOpen = anchorButton.getAttribute('aria-expanded') === 'true';
+  if (elements.activeStepMenuAnchor && elements.activeStepMenuAnchor !== anchorButton) {
+    closeStepMenu(elements.activeStepMenuAnchor);
+  }
+
+  if (!isCurrentOpen) {
+    renderStepMenu(anchorButton);
+    anchorButton.setAttribute('aria-expanded', 'true');
+    elements.activeStepMenuAnchor = anchorButton;
+  } else {
+    closeStepMenu(anchorButton);
+  }
+}
+
+function renderStepMenu(anchorButton) {
+  const stepIndex = parseInt(anchorButton.dataset.step, 10) - 1;
+  const menu = elements.stepMenus[stepIndex + 1];
+  if (!menu) return;
+
+  menu.classList.remove('hidden');
+  menu.querySelector('.step-menu-list').innerHTML = STEP_MENU_ITEMS.map((item) => {
+    const isCurrent = item.step === state.currentStep;
+    return `
+      <button
+        type="button"
+        class="step-menu-item${isCurrent ? ' is-current' : ''}"
+        role="menuitem"
+        onclick="selectStepMenuItem(${item.step})"
+      >
+        <span class="step-menu-number">${isCurrent ? '当前' : item.step}</span>
+        <span>${item.title}</span>
+      </button>
+    `;
+  }).join('');
+
+  menu.style.setProperty('--menu-width', 'max-content');
+}
+
+function selectStepMenuItem(targetStep) {
+  if (elements.activeStepMenuAnchor) closeStepMenu(elements.activeStepMenuAnchor);
+  goToStep(targetStep);
+}
+
+function closeStepMenu(anchorButton) {
+  if (!anchorButton) return;
+  anchorButton.setAttribute('aria-expanded', 'false');
+  const stepIndex = parseInt(anchorButton.dataset.step, 10) - 1;
+  elements.stepMenus[stepIndex + 1]?.classList.add('hidden');
+  if (elements.activeStepMenuAnchor === anchorButton) {
+    elements.activeStepMenuAnchor = null;
+  }
 }
 
 // 已加载的页脚 Markdown，导出独立 HTML 时会直接内联
@@ -179,19 +255,35 @@ function renderMarkdownFooter(markdown) {
 
   const flushParagraph = () => {
     if (paragraphLines.length === 0) return;
-    const paragraph = paragraphLines.join(' ');
-    renderedBlocks.push(`<p>${renderInlineMarkdown(paragraph)}</p>`);
+    // Markdown 行尾两个空格表示硬换行，避免多行内容被合并
+    let currentLine = [];
+    const lineBlocks = [];
+
+    const flushLine = () => {
+      if (currentLine.length === 0) return;
+      lineBlocks.push(`<span class="site-footer-line">${currentLine.join(' ')}</span>`);
+      currentLine = [];
+    };
+
+    paragraphLines.forEach(line => {
+      const hasHardBreak = /  $/.test(line);
+      currentLine.push(renderInlineMarkdown(hasHardBreak ? line.trimEnd() : line));
+      if (hasHardBreak) flushLine();
+    });
+    flushLine();
+
+    renderedBlocks.push(`<p>${lineBlocks.join('')}</p>`);
     paragraphLines.length = 0;
   };
 
   lines.forEach(rawLine => {
     // 兼容 docs/footer.md 使用 <div align="center"> 包裹 Markdown 的写法
-    if (/^\s*<div\b[^>]*>\s*$/i.test(rawLine) || /^\s*<\/div>\s*$/i.test(rawLine)) {
+    if (/^\s*(?:<div\b[^>]*>|<\/div>|<!--[\s\S]*?-->)\s*$/i.test(rawLine)) {
       flushParagraph();
       return;
     }
 
-    const line = rawLine.trim();
+    const line = rawLine.trimStart();
     if (line === '') {
       flushParagraph();
       return;
@@ -314,29 +406,8 @@ function goToStep(targetStep) {
     setScheduleView(state.visualSubView);
   }
 
-  // 更新步骤指示器
+  // 更新面板可见性
   for (let i = 1; i <= 5; i++) {
-    const dot = document.getElementById(`step-dot-${i}`);
-    const text = document.getElementById(`step-text-${i}`);
-    const line = document.getElementById(`step-line-${i}`);
-
-    if (i < targetStep) {
-      dot.className = 'w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all bg-emerald-500 text-white shadow-md shadow-emerald-100';
-      dot.innerHTML = '✓';
-      text.className = 'text-xs sm:text-sm font-medium mt-2 text-emerald-600';
-      if (line) line.className = 'step-line bg-emerald-500 -mt-5';
-    } else if (i === targetStep) {
-      dot.className = 'w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-4 ring-indigo-50';
-      dot.innerHTML = `${i}`;
-      text.className = 'text-xs sm:text-sm font-bold mt-2 text-indigo-600';
-      if (line) line.className = 'step-line bg-slate-200 -mt-5';
-    } else {
-      dot.className = 'w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all bg-slate-200 text-slate-500';
-      dot.innerHTML = `${i}`;
-      text.className = 'text-xs sm:text-sm font-medium mt-2 text-slate-400';
-      if (line) line.className = 'step-line bg-slate-200 -mt-5';
-    }
-
     if (elements.panels[i]) {
       if (i === targetStep) {
         elements.panels[i].classList.remove('hidden');
@@ -415,7 +486,7 @@ function renderStep2Preview() {
             ${daysBadges}
           </div>
         </div>
-        <span class="text-xs font-bold text-emerald-600 ml-2">严格 ${days.length} 次</span>
+        <span class="text-xs font-bold text-emerald-600 ml-2">共 ${days.length} 次</span>
       </div>
     `;
   }).join('');
@@ -1624,6 +1695,14 @@ function generateStandaloneHtml(items, stats) {
       justify-content: center;
       gap: 8px;
     }
+    .site-footer-content .site-footer-line {
+      flex-basis: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
     .site-footer-content a {
       color: #4f46e5;
       text-decoration: none;
@@ -1656,7 +1735,7 @@ function generateStandaloneHtml(items, stats) {
         </div>
         <div class="header-actions">
           <button class="btn-csv" onclick="downloadCsv()">表格</button>
-          <button class="btn-print" onclick="window.print()">打印 / 另存为 PDF</button>
+          <button class="btn-print" onclick="window.print()">PDF</button>
         </div>
       </div>
       <div class="stats-grid">
@@ -2147,6 +2226,20 @@ function setupEventListeners() {
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   loadSiteFooter();
+
+  document.addEventListener('click', (event) => {
+    if (!elements.activeStepMenuAnchor) return;
+    if (event.target.closest('.step-title-button') || event.target.closest('.step-menu')) return;
+    closeStepMenu(elements.activeStepMenuAnchor);
+  });
+
+  window.addEventListener('resize', () => {
+    if (elements.activeStepMenuAnchor) closeStepMenu(elements.activeStepMenuAnchor);
+  });
+
+  window.addEventListener('scroll', () => {
+    if (elements.activeStepMenuAnchor) closeStepMenu(elements.activeStepMenuAnchor);
+  }, true);
 
   // 默认预载入示例名单
   elements.namesInput.value = SAMPLE_NAMES_TEXT;

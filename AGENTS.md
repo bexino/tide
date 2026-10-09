@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Static scheduling app (智慧排班): a 5-step wizard that generates duty rosters where every person works an exactly equal number of shifts. Plain HTML + vanilla JS — no package.json, no build, no linter, no test runner.
+Static scheduling app (能工智人排班系统): a 5-step wizard that generates duty rosters where every person works an exactly equal number of shifts. Plain HTML + vanilla JS — no package.json, no build, no linter, no test runner.
 
 ## Running & verifying
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>智慧排班</title>
+  <title>能工智人排班系统</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -12,66 +12,24 @@
   <!-- 顶部导航条 -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-center">
-      <h1 class="text-sm sm:text-base font-semibold text-slate-900 leading-none">智慧排班</h1>
+      <h1 class="text-sm sm:text-base font-semibold text-slate-900 leading-none">能工智人排班系统</h1>
     </div>
   </header>
 
   <!-- 主容器 -->
   <main class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 flex-1">
 
-    <!-- 步骤导航条 (Wizard Indicator) -->
-    <div class="bg-white p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm mb-6 sm:mb-8">
-      <div class="flex items-center justify-between relative">
-        <!-- 步骤 1 -->
-        <div class="step-item flex flex-col items-center flex-1 cursor-pointer" onclick="goToStep(1)">
-          <div id="step-dot-1" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all bg-indigo-600 text-white shadow-md shadow-indigo-200">
-            1
-          </div>
-          <span id="step-text-1" class="text-[10px] sm:text-sm font-medium mt-1 sm:mt-2 text-indigo-600 text-center leading-tight">名单与人数</span>
-        </div>
-        <div id="step-line-1" class="step-line bg-slate-200 -mt-3 sm:-mt-5"></div>
-
-        <!-- 步骤 2 -->
-        <div class="step-item flex flex-col items-center flex-1 cursor-pointer" onclick="goToStep(2)">
-          <div id="step-dot-2" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all bg-slate-200 text-slate-600">
-            2
-          </div>
-          <span id="step-text-2" class="text-[10px] sm:text-sm font-medium mt-1 sm:mt-2 text-slate-500 text-center leading-tight">轮换检查</span>
-        </div>
-        <div id="step-line-2" class="step-line bg-slate-200 -mt-3 sm:-mt-5"></div>
-
-        <!-- 步骤 3 -->
-        <div class="step-item flex flex-col items-center flex-1 cursor-pointer" onclick="goToStep(3)">
-          <div id="step-dot-3" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all bg-slate-200 text-slate-600">
-            3
-          </div>
-          <span id="step-text-3" class="text-[10px] sm:text-sm font-medium mt-1 sm:mt-2 text-slate-500 text-center leading-tight">起始日期</span>
-        </div>
-        <div id="step-line-3" class="step-line bg-slate-200 -mt-3 sm:-mt-5"></div>
-
-        <!-- 步骤 4 -->
-        <div class="step-item flex flex-col items-center flex-1 cursor-pointer" onclick="goToStep(4)">
-          <div id="step-dot-4" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all bg-slate-200 text-slate-600">
-            4
-          </div>
-          <span id="step-text-4" class="text-[10px] sm:text-sm font-medium mt-1 sm:mt-2 text-slate-500 text-center leading-tight">假期修改</span>
-        </div>
-        <div id="step-line-4" class="step-line bg-slate-200 -mt-3 sm:-mt-5"></div>
-
-        <!-- 步骤 5 -->
-        <div class="step-item flex flex-col items-center flex-1 cursor-pointer" onclick="goToStep(5)">
-          <div id="step-dot-5" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all bg-slate-200 text-slate-600">
-            5
-          </div>
-          <span id="step-text-5" class="text-[10px] sm:text-sm font-medium mt-1 sm:mt-2 text-slate-500 text-center leading-tight">排班结果</span>
-        </div>
-      </div>
-    </div>
-
     <!-- 步骤 1: 名单录入与人数设置 -->
     <section id="panel-step-1" class="step-panel bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-      <div class="border-b border-slate-100 pb-5 mb-6">
-        <h2 class="text-xl font-bold text-slate-900">名单与人数</h2>
+      <div class="relative border-b border-slate-100 pb-5 mb-6">
+        <button type="button" class="step-title-button" data-step="1" aria-haspopup="menu" aria-expanded="false" onclick="toggleStepMenu(this)">
+          <span class="step-title-number">1</span>
+          <span class="step-title-text">名单与人数</span>
+        </button>
+
+        <div id="step-menu-1" class="step-menu hidden" role="menu" aria-label="步骤进度导览">
+          <div class="step-menu-list" role="menu"></div>
+        </div>
       </div>
 
       <div class="space-y-6">
@@ -91,7 +49,7 @@
             </div>
           </div>
           <textarea id="names-input" rows="5" placeholder="输入人员姓名，用逗号（全角或半角）或换行分隔，如：&#10;张三, 李四, 王五，赵六，钱七" class="w-full rounded-xl border-slate-300 border p-3.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-mono"></textarea>
-          <p class="text-xs text-slate-400 mt-1.5">💡 请使用换行或逗号分隔，全半角不限。</p>
+          <p class="text-xs text-slate-400 mt-1.5">请使用换行或逗号分隔，全半角不限。</p>
         </div>
 
         <!-- 每日人数设置与无余数自动计算结果 -->
@@ -134,8 +92,15 @@
     <!-- 步骤 2: 轮换方案检查与随机生成 -->
     <section id="panel-step-2" class="step-panel hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
       <div class="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div>
-          <h2 class="text-xl font-bold text-slate-900">轮换检查</h2>
+        <div class="relative">
+          <button type="button" class="step-title-button" data-step="2" aria-haspopup="menu" aria-expanded="false" onclick="toggleStepMenu(this)">
+            <span class="step-title-number">2</span>
+            <span class="step-title-text">轮换检查</span>
+          </button>
+
+          <div id="step-menu-2" class="step-menu hidden" role="menu" aria-label="步骤进度导览">
+            <div class="step-menu-list" role="menu"></div>
+          </div>
         </div>
         <div class="flex items-center flex-wrap gap-2 self-start sm:self-auto">
           <button type="button" id="btn-edit-assignments" class="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-xl text-sm font-medium transition-colors flex items-center space-x-1.5">
@@ -204,8 +169,15 @@
 
     <!-- 步骤 3: 选择开始日期 -->
     <section id="panel-step-3" class="step-panel hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-      <div class="border-b border-slate-100 pb-5 mb-6">
-        <h2 class="text-xl font-bold text-slate-900">起始日期</h2>
+      <div class="relative border-b border-slate-100 pb-5 mb-6">
+        <button type="button" class="step-title-button" data-step="3" aria-haspopup="menu" aria-expanded="false" onclick="toggleStepMenu(this)">
+          <span class="step-title-number">3</span>
+          <span class="step-title-text">起始日期</span>
+        </button>
+
+        <div id="step-menu-3" class="step-menu hidden" role="menu" aria-label="步骤进度导览">
+          <div class="step-menu-list" role="menu"></div>
+        </div>
       </div>
 
       <div class="max-w-md space-y-6">
@@ -234,8 +206,15 @@
 
     <!-- 步骤 4: 假期修改（排班/放假/补班交互） -->
     <section id="panel-step-4" class="step-panel hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-      <div class="border-b border-slate-100 pb-5 mb-5">
-        <h2 class="text-xl font-bold text-slate-900">假期修改</h2>
+      <div class="relative border-b border-slate-100 pb-5 mb-5">
+        <button type="button" class="step-title-button" data-step="4" aria-haspopup="menu" aria-expanded="false" onclick="toggleStepMenu(this)">
+          <span class="step-title-number">4</span>
+          <span class="step-title-text">假期修改</span>
+        </button>
+
+        <div id="step-menu-4" class="step-menu hidden" role="menu" aria-label="步骤进度导览">
+          <div class="step-menu-list" role="menu"></div>
+        </div>
         <p class="text-sm text-slate-500 mt-1">
           - 点击工作日：切换为放假（休）；<br>- 点击休息日：切换为调休补班（补）。
         </p>
@@ -342,10 +321,14 @@
     <!-- 步骤 5: 排班结果输出 (卡片、表格与文本共用同一视图切换器) -->
     <section id="panel-step-5" class="step-panel hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
       <div class="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div>
-          <div class="flex items-center space-x-2">
-            <span class="text-emerald-500 text-xl font-bold">✓</span>
-            <h2 class="text-xl font-bold text-slate-900">排班生成完毕</h2>
+        <div class="relative">
+          <button type="button" class="step-title-button" data-step="5" aria-haspopup="menu" aria-expanded="false" onclick="toggleStepMenu(this)">
+            <span class="step-title-number">5</span>
+            <span class="step-title-text">排班生成完毕</span>
+          </button>
+
+          <div id="step-menu-5" class="step-menu hidden" role="menu" aria-label="步骤进度导览">
+            <div class="step-menu-list" role="menu"></div>
           </div>
           <p class="text-sm text-slate-500 mt-1"> </p>
         </div>
