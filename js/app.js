@@ -1394,7 +1394,7 @@ function generateStandaloneHtml(items, stats) {
       overflow: visible;
       background: #0f172a;
       border-top: 1px solid #1e293b;
-      display: none;
+      display: block;
     }
     .markdown-output {
       display: block;
@@ -1947,6 +1947,7 @@ function generateStandaloneHtml(items, stats) {
 
     setViewMode(currentView);
     render('');
+    markdownOutput.value = markdownText;
 
     var footerContent = document.getElementById('footerContent');
     if (footerContent) footerContent.innerHTML = ${JSON.stringify(footerHtml)};
