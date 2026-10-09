@@ -1461,7 +1461,6 @@ function generateStandaloneHtml(items, stats) {
     .btn-copy:hover { background: #4338ca; }
     .markdown-wrapper {
       position: relative;
-      max-height: 600px;
       overflow: visible;
       background: #0f172a;
       border-top: 1px solid #1e293b;
@@ -1470,9 +1469,8 @@ function generateStandaloneHtml(items, stats) {
     .markdown-output {
       display: block;
       width: 100%;
-      height: 100%;
+      height: auto;
       min-height: 400px;
-      max-height: 600px;
       padding: 44px 56px 16px 16px;
       background: transparent;
       color: #e2e8f0;
@@ -1519,8 +1517,6 @@ function generateStandaloneHtml(items, stats) {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 600px;
-      overflow-y: auto;
     }
     .card-item {
       background: #ffffff;
@@ -1593,8 +1589,6 @@ function generateStandaloneHtml(items, stats) {
     }
     /* 表格样式 */
     .table-wrapper {
-      max-height: 600px;
-      overflow-y: auto;
       overflow-x: auto;
     }
     table {
