@@ -87,3 +87,72 @@ mark.search-highlight {
   touch-action: manipulation;
   user-select: none;
 }
+
+/* 网站页脚 */
+.site-footer {
+  margin-top: auto;
+  border-top: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  padding: 0.75rem 1rem;
+}
+
+.site-footer-content {
+  max-width: 80rem;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #475569;
+  text-align: center;
+}
+
+.site-footer-content > div,
+.site-footer-content p,
+.site-footer-content ul,
+.site-footer-content ol {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.site-footer-content h1,
+.site-footer-content h2,
+.site-footer-content h3,
+.site-footer-content h4,
+.site-footer-content h5,
+.site-footer-content h6 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.site-footer-content li {
+  display: inline-flex;
+  align-items: center;
+}
+
+.site-footer-content a {
+  color: #4f46e5;
+  text-decoration: none;
+}
+
+.site-footer-content a:hover {
+  color: #4338ca;
+  text-decoration: underline;
+}
+
+.site-footer-content img {
+  height: 20px;
+  width: auto;
+  max-width: 100%;
+  display: inline-block;
+  vertical-align: middle;
+}

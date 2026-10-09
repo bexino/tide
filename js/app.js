@@ -21,7 +21,7 @@ const state = {
   calViewYear: 2026,
   calViewMonth: 8, // 0-11, 8 表示 9月
 
-  // 可视化排班表子视图（手机端默认卡片，电脑端默认表格）
+  // 排班结果视图（手机端默认卡片，电脑端默认表格）
   visualSubView: (typeof window !== 'undefined' && window.innerWidth < 640) ? 'cards' : 'table'
 };
 
@@ -80,15 +80,15 @@ const elements = {
   btnToStep4: document.getElementById('btn-to-step-4'),
 
   // Step 4 (月历选择器)
-  calStatNeeded: document.getElementById('cal-stat-needed'),
-  calStatActual: document.getElementById('cal-stat-actual'),
-  calStatExcluded: document.getElementById('cal-stat-excluded'),
-  calStatManual: document.getElementById('cal-stat-manual'),
-  calStatRange: document.getElementById('cal-stat-range'),
+  calStatRangeStart: document.getElementById('cal-stat-range-start'),
+  calStatRangeEnd: document.getElementById('cal-stat-range-end'),
   btnCalClearAll: document.getElementById('btn-cal-clear-All') || document.getElementById('btn-cal-clear-all'),
   calendarQuickDateInput: document.getElementById('calendar-quick-date-input'),
+  calendarQuickDateButton: document.getElementById('calendar-quick-date-button'),
+  calendarQuickDateState: document.getElementById('calendar-quick-date-state'),
   btnQuickSetHoliday: document.getElementById('btn-quick-set-holiday'),
   btnQuickSetWorkday: document.getElementById('btn-quick-set-workday'),
+  btnQuickResetDate: document.getElementById('btn-quick-reset-date'),
   excludedTagsContainer: document.getElementById('excluded-tags-container'),
   excludedTagsList: document.getElementById('excluded-tags-list'),
   calendarMonthTitle: document.getElementById('calendar-month-title'),
@@ -99,20 +99,18 @@ const elements = {
   calendarGrid: document.getElementById('calendar-grid'),
   btnToStep5: document.getElementById('btn-to-step-5'),
 
-  // Step 5 (默认可视化表格视图，Markdown为第二视图)
+  // Step 5 (卡片、表格与文本共用同一视图切换器)
   markdownOutput: document.getElementById('markdown-output'),
   finalTableBody: document.getElementById('final-table-body'),
   finalCardsContainer: document.getElementById('final-cards-container'),
   finalTableScrollContainer: document.getElementById('final-table-scroll-container'),
   btnSubviewCards: document.getElementById('btn-subview-cards'),
   btnSubviewTable: document.getElementById('btn-subview-table'),
+  btnSubviewText: document.getElementById('btn-subview-text'),
   btnDownloadHtml: document.getElementById('btn-download-html'),
   btnDownloadCsv: document.getElementById('btn-download-csv'),
   btnCopyMarkdown: document.getElementById('btn-copy-markdown'),
-  tabBtnMarkdown: document.getElementById('tab-btn-markdown'),
-  tabBtnTable: document.getElementById('tab-btn-table'),
-  viewMarkdownContainer: document.getElementById('view-markdown-container'),
-  viewTableContainer: document.getElementById('view-table-container'),
+  viewTextContainer: document.getElementById('view-text-container'),
   tableSearchInput: document.getElementById('table-search-input'),
   btnClearTableSearch: document.getElementById('btn-clear-table-search'),
   searchResultStats: document.getElementById('search-result-stats'),
@@ -122,7 +120,11 @@ const elements = {
   // Toast
   toast: document.getElementById('toast'),
   toastMessage: document.getElementById('toast-message'),
-  toastIcon: document.getElementById('toast-icon')
+  toastIcon: document.getElementById('toast-icon'),
+
+  // 网站页脚
+  siteFooter: document.getElementById('site-footer'),
+  siteFooterContent: document.getElementById('site-footer-content')
 };
 
 // 获取本地今日日期 YYYY-MM-DD
@@ -147,6 +149,84 @@ function showToast(message, icon = '✓') {
     elements.toast.classList.remove('opacity-100', 'translate-y-0');
     elements.toast.classList.add('opacity-0', '-translate-y-4');
   }, 2200);
+}
+
+// 已加载的页脚 Markdown，导出独立 HTML 时会直接内联
+var siteFooterMarkdown = '';
+
+// 解析页脚 Markdown，当前仅需支持段落和行内链接/图片
+function renderInlineMarkdown(text) {
+  const escapedText = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  return escapedText
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (match, alt, href) => {
+      return `<img src="${href}" alt="${alt}">`;
+    })
+    .replace(/\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (match, label, href) => {
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    });
+}
+
+function renderMarkdownFooter(markdown) {
+  const lines = markdown.trim().split(/\r?\n/);
+  const paragraphLines = [];
+  const renderedBlocks = [];
+
+  const flushParagraph = () => {
+    if (paragraphLines.length === 0) return;
+    const paragraph = paragraphLines.join(' ');
+    renderedBlocks.push(`<p>${renderInlineMarkdown(paragraph)}</p>`);
+    paragraphLines.length = 0;
+  };
+
+  lines.forEach(rawLine => {
+    // 兼容 docs/footer.md 使用 <div align="center"> 包裹 Markdown 的写法
+    if (/^\s*<div\b[^>]*>\s*$/i.test(rawLine) || /^\s*<\/div>\s*$/i.test(rawLine)) {
+      flushParagraph();
+      return;
+    }
+
+    const line = rawLine.trim();
+    if (line === '') {
+      flushParagraph();
+      return;
+    }
+    paragraphLines.push(line);
+  });
+  flushParagraph();
+
+  return renderedBlocks.join('');
+}
+
+function loadSiteFooter() {
+  if (!elements.siteFooter || !elements.siteFooterContent) return;
+
+  const renderLoadedFooter = () => {
+    if (typeof window.FOOTER_MARKDOWN !== 'string') return;
+    siteFooterMarkdown = window.FOOTER_MARKDOWN;
+    elements.siteFooterContent.innerHTML = renderMarkdownFooter(siteFooterMarkdown);
+    elements.siteFooter.hidden = elements.siteFooterContent.innerHTML.trim() === '';
+
+    // 重新加载时移除旧脚本，确保后续变更可重新触发
+    document.querySelectorAll('script[data-footer-loader]').forEach(node => node.remove());
+  };
+
+  // 页面直开（file://）时 fetch/XHR 均受浏览器限制，通过 JS 文件承载 Markdown 内容
+  const script = document.createElement('script');
+  script.dataset.footerLoader = 'true';
+  script.onload = renderLoadedFooter;
+  script.onerror = () => {
+    console.error('页脚加载失败');
+    elements.siteFooter.hidden = true;
+    document.querySelectorAll('script[data-footer-loader]').forEach(node => node.remove());
+  };
+  script.src = `docs/footer.md?_=${Date.now()}`;
+  document.head.appendChild(script);
 }
 
 // 错误提示
@@ -220,6 +300,7 @@ function goToStep(targetStep) {
     if (!state.startDateStr) {
       state.startDateStr = elements.startDateInput.value || getTodayDateStr();
     }
+
     // 同步月历视图初始月份为开始日期所在月
     const startD = parseDate(state.startDateStr);
     state.calViewYear = startD.getFullYear();
@@ -229,8 +310,8 @@ function goToStep(targetStep) {
 
   if (targetStep === 5) {
     renderFinalSchedule();
-    // 确保可视化表格为默认活动标签
-    switchToTableView();
+    // 进入结果页时保持既定默认视图（手机端卡片，电脑端表格）
+    setScheduleView(state.visualSubView);
   }
 
   // 更新步骤指示器
@@ -417,7 +498,18 @@ function saveEditAssignmentsModal() {
 function handleStartDateChange() {
   const val = elements.startDateInput.value;
   if (!val) return;
+  const oldStart = state.startDateStr;
   state.startDateStr = val;
+
+  // 起始日期变化后，合法选择区间随之变化，需清理已超出范围的记录
+  const validRange = getScheduleDateRange();
+  pruneScheduleDateSelections(validRange.start, validRange.end);
+
+  if (oldStart && oldStart !== val) {
+    const startD = parseDate(val);
+    state.calViewYear = startD.getFullYear();
+    state.calViewMonth = startD.getMonth();
+  }
 
   const date = parseDate(val);
   const dayOfWeek = date.getDay();
@@ -438,27 +530,149 @@ function handleStartDateChange() {
 // 步骤 4：月历选择器核心逻辑 (Calendar Picker)
 // ----------------------------------------------------
 
-function renderStep4Calendar() {
-  const totalDays = state.scheduleAssignments.totalDays;
-
-  // 计算排班日期与所有日历标记
-  const { workdays, scannedDays, datesMap } = computeScheduleDates(
-    state.startDateStr,
-    totalDays,
+// 计算本次排班的完整可选区间
+function getScheduleDateRange() {
+  const totalDays = state.scheduleAssignments ? state.scheduleAssignments.totalDays : 0;
+  const { workdays } = computeScheduleDates(
+    state.startDateStr || getTodayDateStr(),
+    totalDays + 1,
     state.excludedHolidays,
     state.manualWorkdays
   );
+  const allowedWorkdays = workdays.slice(0, totalDays);
+  const fallbackDate = state.startDateStr || getTodayDateStr();
 
-  // 更新顶部指标
-  elements.calStatNeeded.textContent = `${totalDays} 天整`;
-  elements.calStatActual.textContent = `${workdays.length} 天`;
-  elements.calStatExcluded.textContent = `${state.excludedHolidays.size} 天`;
-  elements.calStatManual.textContent = `${state.manualWorkdays.size} 天`;
+  return {
+    start: fallbackDate,
+    end: allowedWorkdays.length > 0 ? allowedWorkdays[allowedWorkdays.length - 1].dateStr : fallbackDate
+  };
+}
 
-  if (workdays.length > 0) {
-    const firstDay = workdays[0].dateStr;
-    const lastDay = workdays[workdays.length - 1].dateStr;
-    elements.calStatRange.textContent = `${firstDay} 至 ${lastDay}`;
+function isScheduleDateOutsideRange(dateStr, validRange) {
+  return dateStr < validRange.start || dateStr > validRange.end;
+}
+
+function validateScheduleDateSelection(dateStr) {
+  const validRange = getScheduleDateRange();
+  if (isScheduleDateOutsideRange(dateStr, validRange)) {
+    showToast(`只能选择 ${validRange.start} 至 ${validRange.end} 内的日期`, '⚠️');
+    return true;
+  }
+  return false;
+}
+
+function pruneScheduleDateSelections(rangeStart, rangeEnd) {
+  const isOutside = dateStr => dateStr < rangeStart || dateStr > rangeEnd;
+  Array.from(state.excludedHolidays).filter(isOutside).forEach(dateStr => state.excludedHolidays.delete(dateStr));
+  Array.from(state.manualWorkdays).filter(isOutside).forEach(dateStr => state.manualWorkdays.delete(dateStr));
+}
+
+// 查找单日的状态机查询；dateStatus 供日历与快速选择器共用
+function getQuickDateState(dateStr) {
+  if (!dateStr) {
+    return { dateStatus: 'unselected', allowedActions: { holiday: false, workday: false, reset: false }, message: '请选择' };
+  }
+
+  const validRange = getScheduleDateRange();
+  if (isScheduleDateOutsideRange(dateStr, validRange)) {
+    return {
+      dateStatus: 'outside',
+      allowedActions: { holiday: false, workday: false, reset: false },
+      message: '这天是：超出排班区间'
+    };
+  }
+
+  const date = parseDate(dateStr);
+  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+  const isManualHoliday = state.excludedHolidays.has(dateStr);
+  const isManualWorkday = state.manualWorkdays.has(dateStr);
+
+  if (isManualHoliday) {
+    return {
+      dateStatus: 'manual-holiday',
+      allowedActions: { holiday: false, workday: true, reset: true },
+      message: '这天是：手动节假日'
+    };
+  }
+
+  if (isManualWorkday) {
+    return {
+      dateStatus: 'manual-workday',
+      allowedActions: { holiday: true, workday: false, reset: true },
+      message: '这天是：调休补班'
+    };
+  }
+
+  if (isWeekend) {
+    return {
+      dateStatus: 'weekend',
+      allowedActions: { holiday: false, workday: true, reset: false },
+      message: '这天是：双休日'
+    };
+  }
+
+  return {
+    dateStatus: 'default-workday',
+    allowedActions: { holiday: true, workday: false, reset: false },
+    message: '这天是：默认排班'
+  };
+}
+
+function updateQuickDateState() {
+  const quickState = getQuickDateState(elements.calendarQuickDateInput.value);
+  elements.calendarQuickDateButton.textContent = elements.calendarQuickDateInput.value
+    ? elements.calendarQuickDateInput.value.replaceAll('-', '/')
+    : '请选择';
+  elements.calendarQuickDateState.textContent = quickState.message;
+
+  const statusStyles = {
+    unselected: 'text-slate-500',
+    outside: 'text-slate-500',
+    'default-workday': 'text-blue-700',
+    weekend: 'text-slate-600',
+    'manual-holiday': 'text-rose-700',
+    'manual-workday': 'text-emerald-700'
+  };
+  elements.calendarQuickDateState.className = `text-xs font-semibold ${statusStyles[quickState.dateStatus]}`;
+
+  elements.btnQuickSetHoliday.disabled = !quickState.allowedActions.holiday;
+  elements.btnQuickSetWorkday.disabled = !quickState.allowedActions.workday;
+  elements.btnQuickResetDate.disabled = !quickState.allowedActions.reset;
+
+  elements.btnQuickSetHoliday.classList.toggle('opacity-40', elements.btnQuickSetHoliday.disabled);
+  elements.btnQuickSetHoliday.classList.toggle('cursor-not-allowed', elements.btnQuickSetHoliday.disabled);
+  elements.btnQuickSetWorkday.classList.toggle('opacity-40', elements.btnQuickSetWorkday.disabled);
+  elements.btnQuickSetWorkday.classList.toggle('cursor-not-allowed', elements.btnQuickSetWorkday.disabled);
+  elements.btnQuickResetDate.classList.toggle('opacity-40', elements.btnQuickResetDate.disabled);
+  elements.btnQuickResetDate.classList.toggle('cursor-not-allowed', elements.btnQuickResetDate.disabled);
+}
+
+function renderStep4Calendar() {
+  const totalDays = state.scheduleAssignments.totalDays;
+  const hasSchedule = Boolean(totalDays);
+
+  // 兼容历史状态：渲染前强制清掉超出当前合法区间的选择
+  const validRange = getScheduleDateRange();
+  pruneScheduleDateSelections(validRange.start, validRange.end);
+  const renderRange = getScheduleDateRange();
+
+  // 扫描结束日的后一天，确保非法补班日期也能获得日历状态和不可选提示
+  const { workdays, datesMap } = hasSchedule
+    ? computeScheduleDates(
+        state.startDateStr,
+        totalDays + 1,
+        state.excludedHolidays,
+        state.manualWorkdays
+      )
+    : { workdays: [], datesMap: new Map() };
+
+  // 更新排班区间卡片
+  if (hasSchedule && workdays.length >= totalDays) {
+    elements.calStatRangeStart.textContent = renderRange.start.replaceAll('-', '/');
+    elements.calStatRangeEnd.textContent = renderRange.end.replaceAll('-', '/');
+  } else {
+    elements.calStatRangeStart.textContent = '-';
+    elements.calStatRangeEnd.textContent = '-';
   }
 
   // 渲染排除与补班标记标签栏
@@ -467,14 +681,23 @@ function renderStep4Calendar() {
   // 渲染月历头部标题
   const year = state.calViewYear;
   const month = state.calViewMonth; // 0-11
-  elements.calendarMonthTitle.textContent = `${year} 年 ${String(month + 1).padStart(2, '0')} 月`;
+  elements.calendarMonthTitle.textContent = `${year}/${String(month + 1).padStart(2, '0')}`;
+
+  // 快速日期输入的范围需要随当前排班区间实时更新
+  elements.calendarQuickDateInput.min = renderRange.start;
+  if (renderRange.end > renderRange.start) {
+    elements.calendarQuickDateInput.max = renderRange.end;
+  } else {
+    elements.calendarQuickDateInput.removeAttribute('max');
+  }
+  updateQuickDateState();
 
   // 渲染月历网格
-  renderMonthGrid(year, month, datesMap);
+  renderMonthGrid(year, month, datesMap, renderRange);
 }
 
 // 渲染月历格子 (7列 x 5~6行)
-function renderMonthGrid(year, month, datesMap) {
+function renderMonthGrid(year, month, datesMap, validRange) {
   const firstDayOfMonth = new Date(year, month, 1);
   const startDayOfWeek = firstDayOfMonth.getDay(); // 0 = 周日, 1 = 周一, ...
 
@@ -488,14 +711,14 @@ function renderMonthGrid(year, month, datesMap) {
     const prevDayNum = daysInPrevMonth - i;
     const prevDate = new Date(year, month - 1, prevDayNum);
     const dateStr = formatDate(prevDate);
-    cellsHtml += buildCalendarCellHtml(dateStr, prevDayNum, true, datesMap);
+    cellsHtml += buildCalendarCellHtml(dateStr, prevDayNum, true, datesMap, validRange);
   }
 
   // 2. 当月日期格子
   for (let day = 1; day <= daysInMonth; day++) {
     const curDate = new Date(year, month, day);
     const dateStr = formatDate(curDate);
-    cellsHtml += buildCalendarCellHtml(dateStr, day, false, datesMap);
+    cellsHtml += buildCalendarCellHtml(dateStr, day, false, datesMap, validRange);
   }
 
   // 3. 下月留白填充格子（补齐到7的倍数）
@@ -504,14 +727,14 @@ function renderMonthGrid(year, month, datesMap) {
   for (let day = 1; day <= remainingCells; day++) {
     const nextDate = new Date(year, month + 1, day);
     const dateStr = formatDate(nextDate);
-    cellsHtml += buildCalendarCellHtml(dateStr, day, true, datesMap);
+    cellsHtml += buildCalendarCellHtml(dateStr, day, true, datesMap, validRange);
   }
 
   elements.calendarGrid.innerHTML = cellsHtml;
 }
 
 // 构建单个日历格子的 HTML
-function buildCalendarCellHtml(dateStr, dayNum, isOtherMonth, datesMap) {
+function buildCalendarCellHtml(dateStr, dayNum, isOtherMonth, datesMap, validRange) {
   const dateObj = parseDate(dateStr);
   const dayOfWeek = dateObj.getDay();
   const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
@@ -524,8 +747,14 @@ function buildCalendarCellHtml(dateStr, dayNum, isOtherMonth, datesMap) {
   let borderClass = 'border-slate-200';
   let badgeHtml = '';
   let textColor = isOtherMonth ? 'text-slate-300' : 'text-slate-700';
+  const isDateDisabled = isScheduleDateOutsideRange(dateStr, validRange);
 
-  if (dayInfo && dayInfo.isWorkday) {
+  if (isDateDisabled) {
+    cellBgClass = 'bg-slate-50/60 cursor-not-allowed hover:bg-slate-50/60';
+    borderClass = 'border-slate-200/80';
+    badgeHtml = '';
+    textColor = isOtherMonth ? 'text-slate-300' : 'text-slate-400';
+  } else if (dayInfo && dayInfo.isWorkday) {
     if (isManual) {
       cellBgClass = 'bg-emerald-50/90 border-emerald-300 hover:bg-emerald-100';
       badgeHtml = `<span class="text-[10px] font-bold text-emerald-800 bg-emerald-200/90 px-1.5 py-0.5 rounded shadow-2xs">补 #${dayInfo.workdayIndex}</span>`;
@@ -537,7 +766,7 @@ function buildCalendarCellHtml(dateStr, dayNum, isOtherMonth, datesMap) {
     }
   } else if (isExcluded) {
     cellBgClass = 'bg-rose-50 border-rose-200 hover:bg-blue-50 hover:border-blue-300';
-    badgeHtml = `<span class="text-[10px] font-bold text-rose-700 bg-rose-200/90 px-1.5 py-0.5 rounded shadow-2xs">休·跳过</span>`;
+    badgeHtml = `<span class="text-[10px] font-bold text-rose-700 bg-rose-200/90 px-1.5 py-0.5 rounded shadow-2xs">休</span>`;
     textColor = 'text-rose-800 line-through font-medium';
   } else if (isWeekend) {
     cellBgClass = isOtherMonth ? 'bg-slate-50/50' : 'bg-slate-50 hover:bg-emerald-50/60 hover:border-emerald-300';
@@ -550,7 +779,9 @@ function buildCalendarCellHtml(dateStr, dayNum, isOtherMonth, datesMap) {
   }
 
   let titleTooltip = `${dateStr} (${WEEKDAY_NAMES[dayOfWeek]})`;
-  if (dayInfo && dayInfo.isWorkday) {
+  if (isDateDisabled) {
+    titleTooltip += ' [不可选择] 仅允许修改起始日期至实际排班结束日期范围内的日期';
+  } else if (dayInfo && dayInfo.isWorkday) {
     titleTooltip += ` [排班第${dayInfo.workdayIndex}天] 点击设为放假`;
   } else if (isExcluded) {
     titleTooltip += ' [放假跳过] 点击恢复排班';
@@ -559,7 +790,7 @@ function buildCalendarCellHtml(dateStr, dayNum, isOtherMonth, datesMap) {
   }
 
   return `
-    <div class="calendar-cell p-2 select-none cursor-pointer flex flex-col justify-between border ${borderClass} ${cellBgClass}"
+    <div class="calendar-cell p-2 select-none flex flex-col justify-between border ${borderClass} ${cellBgClass}"
          onclick="handleCalendarCellClick('${dateStr}')"
          title="${titleTooltip}">
       <div class="flex items-center justify-between">
@@ -575,20 +806,16 @@ function buildCalendarCellHtml(dateStr, dayNum, isOtherMonth, datesMap) {
 
 // 日历单元格点击事件交互
 function handleCalendarCellClick(dateStr) {
-  const dateObj = parseDate(dateStr);
-  const dayOfWeek = dateObj.getDay();
-  const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+  if (validateScheduleDateSelection(dateStr)) return;
 
-  const isExcluded = state.excludedHolidays.has(dateStr);
-  const isManual = state.manualWorkdays.has(dateStr);
-
-  if (isExcluded) {
+  const quickState = getQuickDateState(dateStr);
+  if (quickState.dateStatus === 'manual-holiday') {
     state.excludedHolidays.delete(dateStr);
     showToast(`已恢复排班：${dateStr}`);
-  } else if (isManual) {
+  } else if (quickState.dateStatus === 'manual-workday') {
     state.manualWorkdays.delete(dateStr);
-    showToast(`已恢复周末休息：${dateStr}`);
-  } else if (isWeekend) {
+    showToast(`已恢复初始状态：${dateStr}`);
+  } else if (quickState.dateStatus === 'weekend') {
     state.manualWorkdays.add(dateStr);
     showToast(`已将 ${dateStr} 设为调休排班！`, '✅');
   } else {
@@ -639,15 +866,81 @@ function renderExcludedAndManualTags() {
 }
 
 function removeHolidayTag(dateStr) {
+  if (validateScheduleDateSelection(dateStr)) return;
   state.excludedHolidays.delete(dateStr);
   showToast(`已恢复排班：${dateStr}`);
   renderStep4Calendar();
 }
 
 function removeManualWorkdayTag(dateStr) {
+  if (validateScheduleDateSelection(dateStr)) return;
   state.manualWorkdays.delete(dateStr);
   showToast(`已撤销补班：${dateStr}`);
   renderStep4Calendar();
+}
+
+function handleQuickSetHoliday() {
+  const val = elements.calendarQuickDateInput.value;
+  if (!val) {
+    showToast('请先选择日期', '⚠️');
+    return;
+  }
+  if (validateScheduleDateSelection(val)) return;
+  const quickState = getQuickDateState(val);
+  if (!quickState.allowedActions.holiday) {
+    showToast(quickState.dateStatus === 'manual-holiday' ? '该日期已是手动节假日' : '默认排班日期不能设为调休补班', '⚠️');
+    return;
+  }
+
+  state.manualWorkdays.delete(val);
+  state.excludedHolidays.add(val);
+  renderStep4Calendar();
+  showToast(`已将 ${val} 设为跳过放假`, '🚫');
+  elements.calendarQuickDateInput.value = '';
+  updateQuickDateState();
+}
+
+function handleQuickSetWorkday() {
+  const val = elements.calendarQuickDateInput.value;
+  if (!val) {
+    showToast('请先选择日期', '⚠️');
+    return;
+  }
+  if (validateScheduleDateSelection(val)) return;
+  const quickState = getQuickDateState(val);
+  if (!quickState.allowedActions.workday) {
+    showToast(quickState.dateStatus === 'default-workday' ? '默认排班日期无需调休补班' : '双休日不能设为手动节假日', '⚠️');
+    return;
+  }
+
+  state.excludedHolidays.delete(val);
+  state.manualWorkdays.add(val);
+  renderStep4Calendar();
+  showToast(`已将 ${val} 设为调休排班！`, '✅');
+  elements.calendarQuickDateInput.value = '';
+  updateQuickDateState();
+}
+
+function handleQuickResetDate() {
+  const val = elements.calendarQuickDateInput.value;
+  if (!val) {
+    showToast('请先选择日期', '⚠️');
+    return;
+  }
+  if (validateScheduleDateSelection(val)) return;
+
+  const quickState = getQuickDateState(val);
+  if (!quickState.allowedActions.reset) {
+    showToast('该日期已是初始状态', '⚠️');
+    return;
+  }
+
+  state.excludedHolidays.delete(val);
+  state.manualWorkdays.delete(val);
+  renderStep4Calendar();
+  showToast(`已恢复初始状态：${val}`);
+  elements.calendarQuickDateInput.value = '';
+  updateQuickDateState();
 }
 
 // ----------------------------------------------------
@@ -679,37 +972,26 @@ function renderFinalSchedule() {
 }
 
 // 视图切换辅助函数
-function setVisualSubView(viewMode) {
+function setScheduleView(viewMode) {
   state.visualSubView = viewMode;
-  if (viewMode === 'cards') {
-    elements.btnSubviewCards.className = 'px-2.5 py-1 rounded-md bg-white text-indigo-700 shadow-2xs font-bold';
-    elements.btnSubviewTable.className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 font-medium';
-    elements.finalCardsContainer.classList.remove('hidden');
-    elements.finalTableScrollContainer.classList.add('hidden');
-  } else {
-    elements.btnSubviewTable.className = 'px-2.5 py-1 rounded-md bg-white text-indigo-700 shadow-2xs font-bold';
-    elements.btnSubviewCards.className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 font-medium';
-    elements.finalTableScrollContainer.classList.remove('hidden');
-    elements.finalCardsContainer.classList.add('hidden');
+  const inactiveClass = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 font-medium transition-all';
+  const activeClass = 'px-2.5 py-1 rounded-md bg-white text-indigo-700 shadow-2xs font-bold transition-all';
+  const isTextView = viewMode === 'text';
+  const isCardsView = viewMode === 'cards';
+
+  elements.btnSubviewCards.className = isCardsView ? activeClass : inactiveClass;
+  elements.btnSubviewTable.className = viewMode === 'table' ? activeClass : inactiveClass;
+  elements.btnSubviewText.className = isTextView ? activeClass : inactiveClass;
+
+  elements.finalCardsContainer.classList.toggle('hidden', !isCardsView);
+  elements.finalTableScrollContainer.classList.toggle('hidden', viewMode !== 'table');
+  elements.viewTextContainer.classList.toggle('hidden', !isTextView);
+  if (state.visualSubView === 'text') {
+    elements.tableEmptySearch.classList.add('hidden');
   }
 }
 
-function switchToTableView() {
-  elements.tabBtnTable.className = 'text-xs px-3.5 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white transition-all';
-  elements.tabBtnMarkdown.className = 'text-xs px-3.5 py-1.5 rounded-lg font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all';
-  elements.viewTableContainer.classList.remove('hidden');
-  elements.viewMarkdownContainer.classList.add('hidden');
-  setVisualSubView(state.visualSubView);
-}
-
-function switchToMarkdownView() {
-  elements.tabBtnMarkdown.className = 'text-xs px-3.5 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white transition-all';
-  elements.tabBtnTable.className = 'text-xs px-3.5 py-1.5 rounded-lg font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all';
-  elements.viewMarkdownContainer.classList.remove('hidden');
-  elements.viewTableContainer.classList.add('hidden');
-}
-
-// 渲染支持搜索过滤的可视化排班（同时渲染卡片视图与表格视图）
+// 渲染支持搜索过滤的可视化排班（同时渲染卡片与表格）
 function renderFilterableTable(query = '') {
   query = (query || '').trim().toLowerCase();
 
@@ -722,10 +1004,15 @@ function renderFilterableTable(query = '') {
 
   if (query) {
     elements.btnClearTableSearch.classList.remove('hidden');
-    elements.searchResultStats.innerHTML = `共找到 <b class="text-indigo-600 font-bold">${filteredItems.length}</b> 天排班（匹配 “${query}”）`;
+    elements.searchResultStats.innerHTML = `共找到 <b class="text-indigo-600 font-bold">${filteredItems.length}</b> 天（匹配 “${query}”）`;
   } else {
     elements.btnClearTableSearch.classList.add('hidden');
-    elements.searchResultStats.textContent = `共 ${state.finalScheduleItems.length} 天排班`;
+    elements.searchResultStats.textContent = `共 ${state.finalScheduleItems.length} 天`;
+  }
+
+  if (state.visualSubView === 'text') {
+    elements.tableEmptySearch.classList.add('hidden');
+    return;
   }
 
   if (filteredItems.length === 0) {
@@ -860,7 +1147,10 @@ function downloadCsvFile() {
 function generateStandaloneHtml(items, stats) {
   const itemsJson = JSON.stringify(items);
   const statsJson = JSON.stringify(stats);
+  const markdownText = formatToMarkdown(items);
+  const markdownJson = JSON.stringify(markdownText);
   const title = `排班表 (${stats.startDate} 至 ${stats.endDate})`;
+  const footerHtml = renderMarkdownFooter(siteFooterMarkdown);
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -1075,7 +1365,83 @@ function generateStandaloneHtml(items, stats) {
       color: #4338ca;
       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
-    /* 卡片视图样式 */
+    .copy-wrapper {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 15;
+    }
+    .btn-copy {
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      background: #4f46e5;
+      color: #ffffff;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(79,70,229,0.25);
+      transition: background 0.2s;
+    }
+    .btn-copy:hover { background: #4338ca; }
+    .markdown-wrapper {
+      position: relative;
+      max-height: 600px;
+      overflow: visible;
+      background: #0f172a;
+      border-top: 1px solid #1e293b;
+      display: none;
+    }
+    .markdown-output {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 400px;
+      max-height: 600px;
+      padding: 44px 56px 16px 16px;
+      background: transparent;
+      color: #e2e8f0;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.65;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .markdown-output.copy-success {
+      box-shadow: inset 0 0 0 2px #10b981;
+    }
+    .app-toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      z-index: 60;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 10px 15px -3px rgba(15,23,42,0.25), 0 4px 6px -4px rgba(15,23,42,0.25);
+      opacity: 0;
+      transform: translate(-50%, -16px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .app-toast.visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+    /* 卡片样式 */
     .cards-wrapper {
       padding: 12px;
       background: #f8fafc;
@@ -1154,7 +1520,7 @@ function generateStandaloneHtml(items, stats) {
       border-color: #fde047;
       font-weight: 700;
     }
-    /* 表格视图样式 */
+    /* 表格样式 */
     .table-wrapper {
       max-height: 600px;
       overflow-y: auto;
@@ -1231,11 +1597,49 @@ function generateStandaloneHtml(items, stats) {
       font-size: 14px;
       display: none;
     }
+    .site-footer {
+      margin-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      background-color: #ffffff;
+      padding: 12px 12px;
+      text-align: center;
+    }
+    .site-footer-content {
+      max-width: 1024px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #475569;
+    }
+    .site-footer-content p {
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .site-footer-content a {
+      color: #4f46e5;
+      text-decoration: none;
+    }
+    .site-footer-content img {
+      height: 20px;
+      width: auto;
+      max-width: 100%;
+      display: inline-block;
+      vertical-align: middle;
+    }
     .hidden { display: none !important; }
     @media print {
       body { background: #ffffff; padding: 0; }
       .header { border: none; box-shadow: none; padding: 0 0 16px 0; }
-      .btn-print, .btn-csv, .header-actions, .toolbar, .cards-wrapper, .view-toggle { display: none !important; }
+      .btn-print, .btn-csv, .header-actions, .toolbar, .cards-wrapper, .view-toggle, .markdown-wrapper { display: none !important; }
       .table-wrapper { display: block !important; max-height: none; overflow: visible; }
       .table-container { border: 1px solid #000000; box-shadow: none; }
       th, td { border-bottom: 1px solid #cccccc; }
@@ -1251,7 +1655,7 @@ function generateStandaloneHtml(items, stats) {
           <div class="subtitle">排班区间：${stats.startDate} 至 ${stats.endDate} <br> 点击人名亦可快速筛选。</div>
         </div>
         <div class="header-actions">
-          <button class="btn-csv" onclick="downloadCsv()">导出 CSV 表格</button>
+          <button class="btn-csv" onclick="downloadCsv()">表格</button>
           <button class="btn-print" onclick="window.print()">打印 / 另存为 PDF</button>
         </div>
       </div>
@@ -1283,10 +1687,11 @@ function generateStandaloneHtml(items, stats) {
           <button id="btnClear" class="btn-clear" onclick="clearSearch()">✕</button>
         </div>
         <div class="toolbar-right">
-          <div id="statsInfo" class="toolbar-info">共 ${items.length} 天排班</div>
+          <div id="statsInfo" class="toolbar-info">共 ${items.length} 天</div>
           <div class="view-toggle">
-            <button id="btnCards" class="view-btn" onclick="setViewMode('cards')">卡片视图</button>
-            <button id="btnTable" class="view-btn" onclick="setViewMode('table')">表格视图</button>
+            <button id="btnCards" class="view-btn" onclick="setViewMode('cards')">卡片</button>
+            <button id="btnTable" class="view-btn" onclick="setViewMode('table')">表格</button>
+            <button id="btnText" class="view-btn" onclick="setViewMode('text')">文本</button>
           </div>
         </div>
       </div>
@@ -1313,12 +1718,29 @@ function generateStandaloneHtml(items, stats) {
         <div style="font-size: 28px; margin-bottom: 8px;">🔍</div>
         未找到与关键词匹配的排班记录
       </div>
+
+      <div id="markdownWrapper" class="markdown-wrapper">
+        <div class="copy-wrapper">
+          <button id="btnCopy" class="btn-copy" onclick="copyMarkdown()" aria-label="复制 Markdown 文本" title="复制 Markdown 文本">复制</button>
+        </div>
+        <textarea id="markdownOutput" class="markdown-output" readonly></textarea>
+      </div>
     </div>
+  </div>
+
+  <footer class="site-footer" aria-label="页脚">
+    <div id="footerContent" class="site-footer-content"></div>
+  </footer>
+
+  <div id="appToast" class="app-toast">
+    <span>✓</span>
+    <span id="appToastMessage">操作成功</span>
   </div>
 
   <script>
     const scheduleData = ${itemsJson};
     const statsData = ${statsJson};
+    const markdownText = ${markdownJson};
     let currentView = window.innerWidth < 640 ? 'cards' : 'table';
 
     const searchInput = document.getElementById('searchInput');
@@ -1328,8 +1750,14 @@ function generateStandaloneHtml(items, stats) {
     const tableWrapper = document.getElementById('tableWrapper');
     const btnCards = document.getElementById('btnCards');
     const btnTable = document.getElementById('btnTable');
+    const btnText = document.getElementById('btnText');
     const statsInfo = document.getElementById('statsInfo');
     const emptyState = document.getElementById('emptyState');
+    const markdownWrapper = document.getElementById('markdownWrapper');
+    const markdownOutput = document.getElementById('markdownOutput');
+    const btnCopy = document.getElementById('btnCopy');
+    const appToast = document.getElementById('appToast');
+    const appToastMessage = document.getElementById('appToastMessage');
 
     function escapeHtml(str) {
       return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m]);
@@ -1347,17 +1775,13 @@ function generateStandaloneHtml(items, stats) {
 
     function setViewMode(mode) {
       currentView = mode;
-      if (mode === 'cards') {
-        btnCards.className = 'view-btn active';
-        btnTable.className = 'view-btn';
-        cardsWrapper.classList.remove('hidden');
-        tableWrapper.classList.add('hidden');
-      } else {
-        btnTable.className = 'view-btn active';
-        btnCards.className = 'view-btn';
-        tableWrapper.classList.remove('hidden');
-        cardsWrapper.classList.add('hidden');
-      }
+      btnCards.className = mode === 'cards' ? 'view-btn active' : 'view-btn';
+      btnTable.className = mode === 'table' ? 'view-btn active' : 'view-btn';
+      btnText.className = mode === 'text' ? 'view-btn active' : 'view-btn';
+      cardsWrapper.classList.toggle('hidden', mode !== 'cards');
+      tableWrapper.classList.toggle('hidden', mode !== 'table');
+      markdownWrapper.classList.toggle('hidden', mode !== 'text');
+      if (mode === 'text') emptyState.style.display = 'none';
     }
 
     function render(query = '') {
@@ -1374,7 +1798,12 @@ function generateStandaloneHtml(items, stats) {
       if (query) {
         statsInfo.innerHTML = '共找到 <b>' + filtered.length + '</b> 天（匹配 “' + escapeHtml(query) + '”）';
       } else {
-        statsInfo.textContent = '共 ' + scheduleData.length + ' 天排班';
+        statsInfo.textContent = '共 ' + scheduleData.length + ' 天';
+      }
+
+      if (currentView === 'text') {
+        emptyState.style.display = 'none';
+        return;
       }
 
       if (filtered.length === 0) {
@@ -1431,6 +1860,34 @@ function generateStandaloneHtml(items, stats) {
     function filterByName(name) {
       searchInput.value = name;
       render(name);
+    }
+
+    let copyFeedbackTimer = null;
+    function copyMarkdown() {
+      markdownOutput.value = markdownText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(markdownText).then(showCopySuccess).catch(fallbackCopy);
+      } else {
+        fallbackCopy();
+      }
+    }
+
+    function fallbackCopy() {
+      markdownOutput.focus();
+      markdownOutput.select();
+      document.execCommand('copy');
+      showCopySuccess();
+    }
+
+    function showCopySuccess() {
+      markdownOutput.classList.add('copy-success');
+      appToastMessage.textContent = '排班表 Markdown 已成功复制到剪贴板！';
+      appToast.classList.add('visible');
+      clearTimeout(copyFeedbackTimer);
+      copyFeedbackTimer = setTimeout(function() {
+        markdownOutput.classList.remove('copy-success');
+        appToast.classList.remove('visible');
+      }, 2200);
     }
 
     function clearSearch() {
@@ -1490,6 +1947,9 @@ function generateStandaloneHtml(items, stats) {
 
     setViewMode(currentView);
     render('');
+
+    var footerContent = document.getElementById('footerContent');
+    if (footerContent) footerContent.innerHTML = ${JSON.stringify(footerHtml)};
   </script>
 </body>
 </html>`;
@@ -1595,6 +2055,15 @@ function setupEventListeners() {
   elements.btnToStep4.addEventListener('click', () => goToStep(4));
 
   // Step 4: 月历选择器交互
+  elements.calendarQuickDateInput.addEventListener('change', updateQuickDateState);
+  elements.calendarQuickDateButton.addEventListener('click', () => {
+    if (typeof elements.calendarQuickDateInput.showPicker === 'function') {
+      elements.calendarQuickDateInput.showPicker();
+    } else {
+      elements.calendarQuickDateInput.click();
+    }
+  });
+
   elements.btnPrevMonth.addEventListener('click', () => {
     state.calViewMonth--;
     if (state.calViewMonth < 0) {
@@ -1638,31 +2107,9 @@ function setupEventListeners() {
     showToast('成功重置');
   });
 
-  elements.btnQuickSetHoliday.addEventListener('click', () => {
-    const val = elements.calendarQuickDateInput.value;
-    if (!val) {
-      showToast('请先选择日期', '⚠️');
-      return;
-    }
-    state.manualWorkdays.delete(val);
-    state.excludedHolidays.add(val);
-    renderStep4Calendar();
-    showToast(`已将 ${val} 设为跳过放假`, '🚫');
-    elements.calendarQuickDateInput.value = '';
-  });
-
-  elements.btnQuickSetWorkday.addEventListener('click', () => {
-    const val = elements.calendarQuickDateInput.value;
-    if (!val) {
-      showToast('请先选择日期', '⚠️');
-      return;
-    }
-    state.excludedHolidays.delete(val);
-    state.manualWorkdays.add(val);
-    renderStep4Calendar();
-    showToast(`已将 ${val} 设为调休排班！`, '✅');
-    elements.calendarQuickDateInput.value = '';
-  });
+  elements.btnQuickSetHoliday.addEventListener('click', handleQuickSetHoliday);
+  elements.btnQuickSetWorkday.addEventListener('click', handleQuickSetWorkday);
+  elements.btnQuickResetDate.addEventListener('click', handleQuickResetDate);
 
   elements.btnToStep5.addEventListener('click', () => goToStep(5));
 
@@ -1680,13 +2127,10 @@ function setupEventListeners() {
   elements.btnDownloadCsv.addEventListener('click', downloadCsvFile);
   elements.btnCopyMarkdown.addEventListener('click', copyMarkdownToClipboard);
 
-  // 视图切换：卡片 vs 表格
-  elements.btnSubviewCards.addEventListener('click', () => setVisualSubView('cards'));
-  elements.btnSubviewTable.addEventListener('click', () => setVisualSubView('table'));
-
-  // 视图切换：可视化排班 vs Markdown
-  elements.tabBtnTable.addEventListener('click', switchToTableView);
-  elements.tabBtnMarkdown.addEventListener('click', switchToMarkdownView);
+  // 视图切换：卡片 / 表格 / 文本
+  elements.btnSubviewCards.addEventListener('click', () => setScheduleView('cards'));
+  elements.btnSubviewTable.addEventListener('click', () => setScheduleView('table'));
+  elements.btnSubviewText.addEventListener('click', () => setScheduleView('text'));
 
   elements.btnRestart.addEventListener('click', () => {
     if (confirm('确定要重新开始排班吗？当前所有配置将被重置。')) {
@@ -1701,6 +2145,7 @@ function setupEventListeners() {
 // 页面加载启动
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
+  loadSiteFooter();
 
   // 默认预载入示例名单
   elements.namesInput.value = SAMPLE_NAMES_TEXT;
