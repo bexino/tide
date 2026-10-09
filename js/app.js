@@ -173,14 +173,14 @@ function handleStep1Inputs() {
       elements.step1CycleHint.innerHTML = `
         需排班 <span class="text-indigo-600 font-bold text-sm">${cycle.totalDays}</span> 天整，
         每人值班 <span class="text-indigo-600 font-bold text-sm">${cycle.shiftsPerPerson}</span> 次，
-        总计 <span class="text-indigo-600 font-bold text-sm">${cycle.totalShifts}</span> 班次，<b>严格无余数</b>。
+        总计 <span class="text-indigo-600 font-bold text-sm">${cycle.totalShifts}</span> 班次。
       `;
       hideError(elements.step1Error);
     } else {
-      elements.step1CycleHint.innerHTML = `<span class="text-amber-600 font-medium">⚠️ 总人数 (${count}人) 少于每日排班人数 (${daily}人)，请补充人员或调低每日人数。</span>`;
+      elements.step1CycleHint.innerHTML = `<span class="text-amber-600 font-medium">⚠️ 总人数 (${count}人) 少于每日值班人数 (${daily}人)，请补充人员或调低每日人数。</span>`;
     }
   } else {
-    elements.step1CycleHint.textContent = '输入人员名单后将自动计算最小无余数天数。';
+    elements.step1CycleHint.textContent = '等待键入...';
   }
 }
 
@@ -199,7 +199,7 @@ function goToStep(targetStep) {
       return;
     }
     if (parsed.length < dailyCount) {
-      showError(elements.step1Error, `总人数 (${parsed.length}人) 不能少于每日排班人数 (${dailyCount}人)`);
+      showError(elements.step1Error, `总人数 (${parsed.length}人) 不能少于每日值班人数 (${dailyCount}人)`);
       return;
     }
     hideError(elements.step1Error);
@@ -371,7 +371,7 @@ function resetEditAssignmentsModal() {
   elements.modalEditTextarea.value = formatAssignmentsToMarkdown(state.scheduleAssignments.dailyAssignments);
   elements.modalEditErrors.classList.add('hidden');
   elements.modalEditErrorsList.innerHTML = '';
-  showToast('已重置为当前方案文本');
+  showToast('成功重置');
 }
 
 // 保存并检查修改后的轮换方案
@@ -398,7 +398,7 @@ function saveEditAssignmentsModal() {
     elements.modalEditErrorsList.innerHTML = result.errors.map(err => `<li>${err}</li>`).join('');
     elements.modalEditErrors.classList.remove('hidden');
     elements.modalEditErrors.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    showToast('轮换方案校验未通过，请按提示修正', '⚠️');
+    showToast('错误', '✗');
     return;
   }
 
@@ -1247,12 +1247,12 @@ function generateStandaloneHtml(items, stats) {
     <div class="header">
       <div class="header-top">
         <div>
-          <div class="title">📅 在线排班表</div>
-          <div class="subtitle">排班区间：${stats.startDate} 至 ${stats.endDate} · 严格无余数均等轮替</div>
+          <div class="title">排班表</div>
+          <div class="subtitle">排班区间：${stats.startDate} 至 ${stats.endDate} <br> 点击人名亦可快速筛选。</div>
         </div>
         <div class="header-actions">
-          <button class="btn-csv" onclick="downloadCsv()">📊 导出 CSV</button>
-          <button class="btn-print" onclick="window.print()">🖨️ 打印 / 另存为 PDF</button>
+          <button class="btn-csv" onclick="downloadCsv()">导出 CSV 表格</button>
+          <button class="btn-print" onclick="window.print()">打印 / 另存为 PDF</button>
         </div>
       </div>
       <div class="stats-grid">
@@ -1261,7 +1261,7 @@ function generateStandaloneHtml(items, stats) {
           <div class="stat-value">${stats.totalPeople} 人</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">每日排班人数</div>
+          <div class="stat-label">每日值班人数</div>
           <div class="stat-value">${stats.dailyPeople} 人</div>
         </div>
         <div class="stat-card">
@@ -1285,8 +1285,8 @@ function generateStandaloneHtml(items, stats) {
         <div class="toolbar-right">
           <div id="statsInfo" class="toolbar-info">共 ${items.length} 天排班</div>
           <div class="view-toggle">
-            <button id="btnCards" class="view-btn" onclick="setViewMode('cards')">📋 卡片</button>
-            <button id="btnTable" class="view-btn" onclick="setViewMode('table')">📊 表格</button>
+            <button id="btnCards" class="view-btn" onclick="setViewMode('cards')">卡片视图</button>
+            <button id="btnTable" class="view-btn" onclick="setViewMode('table')">表格视图</button>
           </div>
         </div>
       </div>
@@ -1302,7 +1302,7 @@ function generateStandaloneHtml(items, stats) {
               <th style="width: 60px;">序号</th>
               <th style="width: 130px;">日期</th>
               <th style="width: 80px;">星期</th>
-              <th>排班值班人员（全角逗号分隔）</th>
+              <th>值班人员</th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
@@ -1533,13 +1533,13 @@ function setupEventListeners() {
   elements.btnLoadSample.addEventListener('click', () => {
     elements.namesInput.value = SAMPLE_NAMES_TEXT;
     handleStep1Inputs();
-    showToast('已成功载入 1.md 的 49 人示例名单');
+    showToast('成功');
   });
 
   elements.btnClearNames.addEventListener('click', () => {
     elements.namesInput.value = '';
     handleStep1Inputs();
-    showToast('已清空名单列表', 'ℹ');
+    showToast('成功');
   });
 
   elements.btnDecreaseDaily.addEventListener('click', () => {
@@ -1586,7 +1586,7 @@ function setupEventListeners() {
 
   elements.btnReshuffle.addEventListener('click', () => {
     generateAssignments();
-    showToast('已重新随机打乱人员顺序！', '🎲');
+    showToast('成功', '✓');
   });
   elements.btnToStep3.addEventListener('click', () => goToStep(3));
 
@@ -1635,7 +1635,7 @@ function setupEventListeners() {
     state.excludedHolidays.clear();
     state.manualWorkdays.clear();
     renderStep4Calendar();
-    showToast('已清空所有排除与补班标记');
+    showToast('成功重置');
   });
 
   elements.btnQuickSetHoliday.addEventListener('click', () => {

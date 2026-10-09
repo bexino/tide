@@ -37,7 +37,7 @@ function parseNames(rawText) {
 /**
  * 计算实现“无余数、每个人排班次数严格相等”所需的最小周期参数
  * @param {number} N 总人数
- * @param {number} K 每日排班人数
+ * @param {number} K 每日值班人数
  * @returns {{ totalDays: number, shiftsPerPerson: number, totalShifts: number, g: number }}
  */
 function calculateCycle(N, K) {
@@ -83,7 +83,7 @@ function generateScheduleAssignments(names, dailyCount) {
   const N = names.length;
   const K = dailyCount;
   if (N < K || K <= 0) {
-    throw new Error('每日排班人数不能超过总人数，且必须大于0');
+    throw new Error('每日值班人数不能超过总人数，且必须大于0');
   }
 
   const { totalDays, shiftsPerPerson, totalShifts } = calculateCycle(N, K);
@@ -338,7 +338,7 @@ function parseAndValidateAssignmentsMarkdown(markdownText, expectedDays, expecte
 
   // 校验 1：天数严格一致（检测掉天数修改直接报错）
   if (daysBlocks.length !== expectedDays) {
-    errors.push(`天数不匹配：设定周期必须为 ${expectedDays} 天整，当前解析到 ${daysBlocks.length} 天（系统已开启严格检测，不可增删天数）`);
+    errors.push(`天数不匹配：设定周期必须为 ${expectedDays} 天整，当前解析到 ${daysBlocks.length} 天`);
   }
 
   const parsedAssignments = [];
@@ -400,7 +400,7 @@ function parseAndValidateAssignmentsMarkdown(markdownText, expectedDays, expecte
   });
 
   if (shiftMismatches.length > 0) {
-    errors.push(`人员轮值次数不均等（破坏了无余数均衡）：${shiftMismatches.slice(0, 8).join('、')}${shiftMismatches.length > 8 ? ` 等共 ${shiftMismatches.length} 人` : ''}`);
+    errors.push(`人员轮值次数不均等：${shiftMismatches.slice(0, 8).join('、')}${shiftMismatches.length > 8 ? ` 等共 ${shiftMismatches.length} 人` : ''}`);
   }
 
   return {
