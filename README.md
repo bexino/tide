@@ -1,3 +1,11 @@
+[![在线体验](https://img.shields.io/badge/在线体验-使用简体中文-red)](https://github.com/bexino/siss)
+[![EnglishOnlineDEMO](https://img.shields.io/badge/Try_our_online_demo-In_English-orange)](https://bexino.github.io/siss/?lang=en)
+[![EnglishREADME](https://img.shields.io/badge/README.md-In_English-yellow)](#English)
+[![Commit Activity](https://img.shields.io/github/commit-activity/t/bexino/siss?color=green)](https://github.com/bexino/siss/commits/main/)
+[![License](https://img.shields.io/github/license/bexino/siss?color=blue)](https://github.com/bexino/siss/blob/main/LICENSE)
+[![MadeWith♥](https://img.shields.io/badge/@bexino-用_♥_制作-purple)](https://github.com/bexino)
+[![ViewInGithub](https://img.shields.io/badge/Github-bexino%2Fsiss-white?logo=github&logoColor=auto&labelColor=555555&color=000000)](https://github.com/bexino/siss/)
+
 # 能工智人排版系统
 
 一个简单实用的静态排班工具：通过用户友好向导生成值班表，可确保每个人承担的班次数量完全相等。
