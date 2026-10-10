@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "tide",
+      "name": "siss",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["-y", "serve", "-l", "8377", "."],
       "port": 8377
