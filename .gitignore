@@ -1,0 +1,12 @@
+# 本地工具配置
+.claude/
+
+# 操作系统
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
