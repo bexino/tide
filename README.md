@@ -12,7 +12,7 @@
 
 ## 快速开始
 
-[点击访问在线演示](https://bexino.github.io/siss/)
+[![](https://img.shields.io/badge/点击访问在线演示-orange)](https://github.com/bexino/siss)
 
 ## 特性
 
@@ -76,7 +76,7 @@ A simple and practical static scheduling tool: it generates duty rosters through
 
 ## Quick Start
 
-[Click to visit the online demo](https://bexino.github.io/siss/)
+[![EnglishOnlineDEMO](https://img.shields.io/badge/Try_our_online_demo-In_English-blue)](https://bexino.github.io/siss/?lang=en)
 
 ## Features
 
