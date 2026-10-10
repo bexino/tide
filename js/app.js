@@ -93,6 +93,7 @@ const I18N = {
     filterThis: 'Click to filter this person’s shifts',
     copied: 'Schedule Markdown copied to the clipboard!',
     csvExported: 'Schedule CSV file exported and downloading!',
+    csvExportConfirm: 'Note before exporting CSV:\n• If a date is displayed as a row of hash symbols ("#") after opening, you need to widen the cell column yourself.\n• CSV does not support saving formatting, so you need to save the file as xlsx or another format yourself.\n\nExport CSV anyway?',
     htmlExported: 'Standalone schedule HTML file exported',
     confirmRestart: 'Start over? All current settings will be reset.',
     confirmRestartEdit: 'Start over with the old roster? Imported content and settings will be reset.',
@@ -1030,7 +1031,7 @@ function resetEditAssignmentsModal() {
   elements.modalEditTextarea.value = formatAssignmentsToMarkdown(state.scheduleAssignments.dailyAssignments);
   elements.modalEditErrors.classList.add('hidden');
   elements.modalEditErrorsList.innerHTML = '';
-  showToast('成功重置');
+  showToast(t('successReset') || '成功重置');
 }
 
 // 保存并检查修改后的轮换方案
@@ -1057,7 +1058,7 @@ function saveEditAssignmentsModal() {
     elements.modalEditErrorsList.innerHTML = result.errors.map(err => `<li>${err}</li>`).join('');
     elements.modalEditErrors.classList.remove('hidden');
     elements.modalEditErrors.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    showToast('错误', '✗');
+    showToast(t('error') || '错误', '✗');
     return;
   }
 
@@ -1069,7 +1070,7 @@ function saveEditAssignmentsModal() {
 
   // 关闭弹窗并给予成功反馈
   closeEditAssignmentsModal();
-  showToast('轮换方案修改成功，已通过严格无余数均衡校验！');
+  showToast(t('rotationSaved') || '轮换方案修改成功，已通过严格无余数均衡校验！');
 }
 
 // 步骤 3 起始日期变化监听
@@ -1481,7 +1482,7 @@ function removeManualWorkdayTag(dateStr) {
 function handleQuickSetHoliday() {
   const val = elements.calendarQuickDateInput.value;
   if (!val) {
-    showToast('请先选择日期', '⚠️');
+    showToast(t('pickDateFirst') || '请先选择日期', '⚠️');
     return;
   }
   if (validateScheduleDateSelection(val)) return;
@@ -1502,7 +1503,7 @@ function handleQuickSetHoliday() {
 function handleQuickSetWorkday() {
   const val = elements.calendarQuickDateInput.value;
   if (!val) {
-    showToast('请先选择日期', '⚠️');
+    showToast(t('pickDateFirst') || '请先选择日期', '⚠️');
     return;
   }
   if (validateScheduleDateSelection(val)) return;
@@ -1523,14 +1524,14 @@ function handleQuickSetWorkday() {
 function handleQuickResetDate() {
   const val = elements.calendarQuickDateInput.value;
   if (!val) {
-    showToast('请先选择日期', '⚠️');
+    showToast(t('pickDateFirst') || '请先选择日期', '⚠️');
     return;
   }
   if (validateScheduleDateSelection(val)) return;
 
   const quickState = getQuickDateState(val);
   if (!quickState.allowedActions.reset) {
-    showToast('该日期已是初始状态', '⚠️');
+    showToast(t('alreadyInitial') || '该日期已是初始状态', '⚠️');
     return;
   }
 
@@ -1717,7 +1718,7 @@ function copyMarkdownToClipboard() {
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(markdown).then(() => {
-      showToast('排班表 Markdown 已成功复制到剪贴板！');
+      showToast(t('copied') || '排班表 Markdown 已成功复制到剪贴板！');
     }).catch(() => {
       fallbackCopyText(markdown);
     });
@@ -1729,13 +1730,17 @@ function copyMarkdownToClipboard() {
 function fallbackCopyText(text) {
   getActiveViewEls().markdown.select();
   document.execCommand('copy');
-  showToast('排班表 Markdown 已成功复制到剪贴板！');
+  showToast(t('copied') || '排班表 Markdown 已成功复制到剪贴板！');
 }
 
 // 导出并下载排班表 CSV 文件 (带 BOM 防止 Excel 乱码)
 function downloadCsvFile() {
   const { items } = getActiveScheduleData();
   if (!items || items.length === 0) return;
+
+  const en = window.APP_LANG === 'en';
+  const message = t('csvExportConfirm') || '导出 CSV 前请注意：\n• 打开后若日期显示为一行井号 "#"，需自行加宽单元格列宽；\n• CSV 不支持格式的保存，故您需要自行另存为 xlsx 等格式。\n\n是否继续导出？';
+  if (!window.confirm(message)) return;
 
   const csvContent = formatToCsv(items);
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1744,7 +1749,7 @@ function downloadCsvFile() {
   link.href = url;
   const startDate = items[0]?.dateStr || '';
   const endDate = items[items.length - 1]?.dateStr || '';
-  const fileName = `排班表_${startDate}_至_${endDate}.csv`;
+  const fileName = window.APP_LANG === 'en' ? `Schedule_${startDate}_to_${endDate}.csv` : `排班表_${startDate}_至_${endDate}.csv`;
   link.setAttribute('download', fileName);
   document.body.appendChild(link);
   link.click();
@@ -2366,7 +2371,7 @@ function generateStandaloneHtml(items, stats) {
     function matchWeekdayEn(q) {
       const tokens = { sun: 0, mon: 1, tue: 2, tues: 2, wed: 3, thu: 4, thur: 4, thurs: 4, fri: 5, sat: 6 };
       const full = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
-      const t0 = q.replace(/\.\+$/, '').toLowerCase();
+      const t0 = q.replace(/\\.+$/, '').toLowerCase();
       if (tokens[t0] !== undefined) return tokens[t0];
       return full[t0] !== undefined ? full[t0] : null;
     }
@@ -2419,7 +2424,7 @@ function generateStandaloneHtml(items, stats) {
       btnClear.style.display = query ? 'block' : 'none';
 
       // 查询中的空格归一化为中心点（人名存储形式如 Lando·Norris）
-      const normalizedQuery = query.replace(/\s+/g, '·');
+      const normalizedQuery = query.replace(/\\s+/g, '·');
       const filtered = scheduleData.filter(item => {
         if (!query) return true;
         if (item.dateStr.toLowerCase().includes(query)) return true;
@@ -2542,6 +2547,8 @@ function generateStandaloneHtml(items, stats) {
     searchInput.addEventListener('input', function(e) { render(e.target.value); });
 
     function downloadCsv() {
+      const confirmMessage = L('导出 CSV 前请注意：\\n• 打开后若日期显示为一行井号 \"#\"，需自行加宽单元格列宽；\\n• CSV 不支持格式的保存，故您需要自行另存为 xlsx 等格式。\\n\\n是否继续导出？', 'Note before exporting CSV:\\n• If a date is displayed as a row of hash symbols (\"#\") after opening, you need to widen the cell column yourself.\\n• CSV does not support saving formatting, so you need to save the file as xlsx or another format yourself.\\n\\nExport CSV anyway?');
+      if (!window.confirm(confirmMessage)) return;
       const maxNames = scheduleData.reduce(function(m, item) { return Math.max(m, (item.names || []).length); }, 0);
       const headers = L(['序号', '日期', '星期', '排班名单'], ['No.', 'Date', 'Weekday', 'Names']);
       if (maxNames > 1) {
@@ -2634,7 +2641,7 @@ function downloadHtmlFile() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  const fileName = `可视化排班表_${startDate}_至_${endDate}.html`;
+  const fileName = window.APP_LANG === 'en' ? `Schedule_${startDate}_to_${endDate}.html` : `可视化排班表_${startDate}_至_${endDate}.html`;
   link.setAttribute('download', fileName);
   document.body.appendChild(link);
   link.click();
@@ -2661,21 +2668,21 @@ function goToEditStep(targetStep) {
 
   // 逐步前置校验
   if (targetStep >= 2 && edit.importedItems.length === 0) {
-    showToast('请先成功导入旧排班表', '⚠️');
+    showToast(t('errImportFirst') || '请先成功导入旧排班表', '⚠️');
     return;
   }
   if (targetStep >= 3) {
     if (!edit.executedThrough) {
-      showToast('请先选择已执行截止日期', '⚠️');
+      showToast(t('errPickThrough') || '请先选择已执行截止日期', '⚠️');
       return;
     }
     if (edit.remainingItems.length === 0) {
-      showToast('没有剩余需要重新编排的班次', '⚠️');
+      showToast(t('errNoRemaining') || '没有剩余需要重新编排的班次', '⚠️');
       return;
     }
   }
   if (targetStep >= 4 && !edit.newStartDate) {
-    showToast('请先选择重新编排的起始日期', '⚠️');
+    showToast(t('errPickNewStart') || '请先选择重新编排的起始日期', '⚠️');
     return;
   }
 
@@ -2753,7 +2760,7 @@ function handleEditImportFile(event) {
     elements.editImportTextarea.value = String(reader.result || '');
     handleEditParseText();
   };
-  reader.onerror = () => showToast('文件读取失败，请重试', '✗');
+  reader.onerror = () => showToast(t('fileReadFailed') || '文件读取失败，请重试', '✗');
   reader.readAsText(file, 'UTF-8');
   // 清空 input.value 以便再次选择同一文件时仍能触发 change
   event.target.value = '';
@@ -2776,7 +2783,7 @@ function handleEditParseText() {
   }
 
   if (result.items.length === 0) {
-    showToast('解析失败，请检查内容格式', '✗');
+    showToast(t('parseFailed') || '解析失败，请检查内容格式', '✗');
     return false;
   }
 
@@ -2871,7 +2878,7 @@ function handleEditExecutedThroughChange() {
     renderEditImportedCards();
     elements.editImportError.innerHTML = `已执行截止日期不能早于导入排班的第一天（${firstDate}）：至少需要已执行 1 天。`;
     elements.editImportError.classList.remove('hidden');
-    showToast('已执行截止日期过早，至少需已执行 1 天', '⚠️');
+    showToast(t('errThroughEarlyToast') || '已执行截止日期过早，至少需已执行 1 天', '⚠️');
     return;
   }
 
@@ -3029,13 +3036,13 @@ function setupEventListeners() {
   elements.btnLoadSample.addEventListener('click', () => {
     elements.namesInput.value = getSampleNamesText();
     handleStep1Inputs();
-    showToast('成功');
+    showToast(t('success') || '成功');
   });
 
   elements.btnClearNames.addEventListener('click', () => {
     elements.namesInput.value = '';
     handleStep1Inputs();
-    showToast('成功');
+    showToast(t('success') || '成功');
   });
 
   elements.btnDecreaseDaily.addEventListener('click', () => {
@@ -3082,7 +3089,7 @@ function setupEventListeners() {
 
   elements.btnReshuffle.addEventListener('click', () => {
     generateAssignments();
-    showToast('成功', '✓');
+    showToast(t('success') || '成功', '✓');
   });
   elements.btnToStep3.addEventListener('click', () => goToStep(3));
 
@@ -3140,7 +3147,7 @@ function setupEventListeners() {
     state.excludedHolidays.clear();
     state.manualWorkdays.clear();
     renderStep4Calendar();
-    showToast('成功重置');
+    showToast(t('successReset') || '成功重置');
   });
 
   elements.btnQuickSetHoliday.addEventListener('click', handleQuickSetHoliday);
@@ -3234,7 +3241,7 @@ function setupEventListeners() {
     state.excludedHolidays.clear();
     state.manualWorkdays.clear();
     renderEditCalendar();
-    showToast('成功重置');
+    showToast(t('successReset') || '成功重置');
   });
 
   elements.btnEditGenerate.addEventListener('click', () => goToEditStep(4));

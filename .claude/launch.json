@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "tide-static",
+      "name": "tide",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["-y", "serve", "-l", "4174", "."],
-      "port": 4174
+      "runtimeArgs": ["-y", "serve", "-l", "8377", "."],
+      "port": 8377
     }
   ]
 }
