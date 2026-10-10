@@ -4,7 +4,7 @@ Static scheduling app (能工智人排班系统): a 5-step wizard that generates
 
 ## Running & verifying
 
-- Just open `index.html` in a browser (no server or build needed). Tailwind loads from CDN at runtime (`@tailwindcss/browser@4`), so styling requires network access and is never compiled/purged locally.
+- Tailwind v4 browser build is self-hosted at `css/tailwind.browser.js` (no CDN, no build step). It compiles utility classes from the DOM at runtime, so styling works offline.
 - `js/scheduler.js` has a `module.exports` guard at the bottom, so its pure logic can be sanity-checked in Node without any test framework, e.g.:
   `node -e "console.log(require('./js/scheduler.js').calculateCycle(22,4))"`
 
